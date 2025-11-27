@@ -85,16 +85,15 @@ namespace OSM
             XNamespace ns = "http://www.gbxml.org/schema";
             var gbxml = new XElement(ns + "gbXML",
                 new XAttribute("version", "6.01"),
-                new XAttribute("temperatureUnit", "C"),
                 new XAttribute("lengthUnit", "Meters"));
 
-            var campus = new XElement("Campus", new XAttribute("id", "campus-1"),
+            var campus = new XElement("Campus", new XAttribute("id", "campus"),
                 new XElement("Location",
                     new XElement("Longitude", oLon.ToString("F6")),
                     new XElement("Latitude", oLat.ToString("F6"))));
 
             var building = new XElement("Building",
-                new XAttribute("id", "building-1"),
+                new XAttribute("id", "building"),
                 new XAttribute("buildingType", "Mixed"),
                 new XElement("Name", "Combined Building"));
 

@@ -29,7 +29,7 @@ namespace OSM
         private void InitializeComponent()
         {
             // Form settings
-            this.Text = "Select Area from OpenStreetMap";
+            this.Text = "OpenStreetMap Browser";
             this.Width = 1200;
             this.Height = 800;
             this.StartPosition = FormStartPosition.CenterScreen;
