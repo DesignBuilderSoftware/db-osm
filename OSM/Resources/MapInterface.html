@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8" />
+    <title>Select Area from OpenStreetMap</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+
+    <!-- Leaflet Draw CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.css" />
+
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif;
+        }
+
+        #map {
+            position: absolute;
+            top: 60px;
+            bottom: 0;
+            left: 0;
+            right: 0;
+        }
+
+        #toolbar {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 45px;
+            background-color: #28722e;
+            color: white;
+            padding: 10px 20px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        #toolbar h3 {
+            margin: 0;
+            font-size: 18px;
+        }
+
+        .btn {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            font-size: 14px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-left: 10px;
+            transition: background-color 0.3s;
+        }
+
+        .btn:hover {
+            background-color: #2980b9;
+        }
+
+        .btn:disabled {
+            background-color: #95a5a6;
+            cursor: not-allowed;
+        }
+
+        .btn-success {
+            background-color: #27ae60;
+        }
+
+        .btn-success:hover {
+            background-color: #229954;
+        }
+
+        #info {
+            color: #ecf0f1;
+            font-size: 12px;
+            margin-left: 20px;
+        }
+
+        #status {
+            position: absolute;
+            bottom: 10px;
+            left: 10px;
+            background-color: rgba(255, 255, 255, 0.9);
+            padding: 10px 15px;
+            border-radius: 4px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+            z-index: 1000;
+            font-size: 12px;
+            max-width: 300px;
+        }
+
+        .status-info {
+            color: #2c3e50;
+        }
+
+        .status-warning {
+            color: #e67e22;
+            font-weight: bold;
+        }
+
+        .status-error {
+            color: #e74c3c;
+            font-weight: bold;
+        }
+
+        #warningModal {
+            display: none;
+            position: fixed;
+            z-index: 2000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+        }
+
+        .modal-content {
+            background-color: white;
+            margin: 15% auto;
+            padding: 30px;
+            border: 1px solid #888;
+            border-radius: 8px;
+            width: 80%;
+            max-width: 500px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+        }
+
+        .modal-header {
+            color: #e74c3c;
+            font-size: 20px;
+            font-weight: bold;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+        }
+
+        .modal-header::before {
+            content: '⚠';
+            font-size: 30px;
+            margin-right: 10px;
+        }
+
+        .modal-body {
+            color: #2c3e50;
+            font-size: 14px;
+            line-height: 1.6;
+            margin-bottom: 20px;
+        }
+
+        .modal-buttons {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+        }
+
+        .btn-modal {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            font-size: 14px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        .btn-modal:hover {
+            background-color: #2980b9;
+        }
+
+        .btn-modal-primary {
+            background-color: #27ae60;
+        }
+
+        .btn-modal-primary:hover {
+            background-color: #229954;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="toolbar">
+        <div style="display: flex; align-items: center;">
+            <h3>Select area from OpenStreetMap</h3>
+            <span id="info">Draw a rectangle on the map to select an area</span>
+        </div>
+        <div>
+            <button id="clearBtn" class="btn" onclick="clearSelection()">Clear Selection</button>
+            <button id="loadBtn" class="btn btn-success" onclick="loadToDesignBuilder()" disabled>Load to
+                DesignBuilder</button>
+        </div>
+    </div>
+
+    <div id="map"></div>
+
+    <div id="status" class="status-info">
+        Ready. Draw a rectangle to select an area.
+    </div>
+
+    <!-- Warning Modal -->
+    <div id="warningModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                Area Too Large
+            </div>
+            <div class="modal-body">
+                <p>The selected area (<strong><span id="modalAreaText"></span></strong>) exceeds the maximum size of
+                    <strong>5 km²</strong>.
+                </p>
+                <p>OpenStreetMap does not support downloading areas larger than <strong>5 km²</strong>.</p>
+                <p>Please select a smaller area.</p>
+            </div>
+            <div class="modal-buttons">
+                <button class="btn-modal btn-modal-primary" onclick="closeWarningModal()">OK</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+    <!-- Leaflet Draw JS -->
+    <script src="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.js"></script>
+
+    <script>
+        var map;
+        var drawnItems;
+        var currentBounds = null;
+        var currentArea = 0;
+        var MAX_AREA_KM2 = 5; // Maximum area in square kilometers
+
+        // Initialize map
+        function initMap() {
+            // Create map centered on London
+            map = L.map('map').setView([51.505, -0.09], 13);
+
+            // Add OpenStreetMap tiles
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+                maxZoom: 19
+            }).addTo(map);
+
+            // Initialize drawn items layer
+            drawnItems = new L.FeatureGroup();
+            map.addLayer(drawnItems);
+
+            // Initialize draw control
+            var drawControl = new L.Control.Draw({
+                position: 'topright',
+                draw: {
+                    polyline: false,
+                    polygon: false,
+                    circle: false,
+                    circlemarker: false,
+                    marker: false,
+                    rectangle: {
+                        shapeOptions: {
+                            color: '#3498db',
+                            weight: 2,
+                            fillOpacity: 0.2
+                        }
+                    }
+                },
+                edit: {
+                    featureGroup: drawnItems,
+                    remove: false
+                }
+            });
+            map.addControl(drawControl);
+
+            // Handle drawing
+            map.on(L.Draw.Event.CREATED, function (event) {
+                var layer = event.layer;
+
+                // Clear previous selection
+                drawnItems.clearLayers();
+
+                // Add new selection
+                drawnItems.addLayer(layer);
+
+                // Get bounds
+                currentBounds = layer.getBounds();
+
+                // Calculate area in km²
+                var ne = currentBounds.getNorthEast();
+                var sw = currentBounds.getSouthWest();
+
+                var latDiff = ne.lat - sw.lat;
+                var lonDiff = ne.lng - sw.lng;
+
+                // Approximate area calculation (not perfect but good enough)
+                var latKm = latDiff * 111.32; // 1 degree latitude ≈ 111.32 km
+                var lonKm = lonDiff * 111.32 * Math.cos((ne.lat + sw.lat) / 2 * Math.PI / 180);
+                currentArea = Math.abs(latKm * lonKm);
+
+                // Update UI
+                updateStatus();
+            });
+
+            map.on(L.Draw.Event.EDITED, function (event) {
+                var layers = event.layers;
+                layers.eachLayer(function (layer) {
+                    currentBounds = layer.getBounds();
+
+                    // Recalculate area
+                    var ne = currentBounds.getNorthEast();
+                    var sw = currentBounds.getSouthWest();
+                    var latDiff = ne.lat - sw.lat;
+                    var lonDiff = ne.lng - sw.lng;
+                    var latKm = latDiff * 111.32;
+                    var lonKm = lonDiff * 111.32 * Math.cos((ne.lat + sw.lat) / 2 * Math.PI / 180);
+                    currentArea = Math.abs(latKm * lonKm);
+
+                    updateStatus();
+                });
+            });
+
+            updateStatus();
+        }
+
+        function updateStatus() {
+            var statusDiv = document.getElementById('status');
+            var loadBtn = document.getElementById('loadBtn');
+
+            if (currentBounds === null) {
+                statusDiv.className = 'status-info';
+                statusDiv.innerHTML = 'Ready. Draw a rectangle to select an area.';
+                loadBtn.disabled = true;
+                return;
+            }
+
+            var ne = currentBounds.getNorthEast();
+            var sw = currentBounds.getSouthWest();
+
+            var areaText = currentArea < 0.01 ?
+                (currentArea * 1000000).toFixed(0) + ' m²' :
+                currentArea.toFixed(2) + ' km²';
+
+            if (currentArea > MAX_AREA_KM2) {
+                statusDiv.className = 'status-error';
+                statusDiv.innerHTML = '⚠ Area too large: ' + areaText + ' (max: ' + MAX_AREA_KM2 + ' km²)<br>' +
+                    'Please select a smaller area.<br>' +
+                    'Bounds: [' + sw.lat.toFixed(5) + ', ' + sw.lng.toFixed(5) + '] to [' + ne.lat.toFixed(5) + ', ' + ne.lng.toFixed(5) + ']';
+                loadBtn.disabled = true;
+
+                // Show warning modal
+                showWarningModal(areaText);
+            } else {
+                statusDiv.className = 'status-info';
+                statusDiv.innerHTML = 'Area selected: ' + areaText + '<br>' +
+                    'Bounds: [' + sw.lat.toFixed(5) + ', ' + sw.lng.toFixed(5) + '] to [' + ne.lat.toFixed(5) + ', ' + ne.lng.toFixed(5) + ']';
+                loadBtn.disabled = false;
+            }
+        }
+
+        function clearSelection() {
+            drawnItems.clearLayers();
+            currentBounds = null;
+            currentArea = 0;
+            updateStatus();
+        }
+
+        function showWarningModal(areaText) {
+            document.getElementById('modalAreaText').textContent = areaText;
+            document.getElementById('warningModal').style.display = 'block';
+        }
+
+        function closeWarningModal() {
+            document.getElementById('warningModal').style.display = 'none';
+        }
+
+        function loadToDesignBuilder() {
+            if (currentBounds === null) {
+                alert('Please select an area first.');
+                return;
+            }
+
+            // Check if area exceeds maximum
+            if (currentArea > MAX_AREA_KM2) {
+                var areaText = currentArea < 0.01 ?
+                    (currentArea * 1000000).toFixed(0) + ' m²' :
+                    currentArea.toFixed(2) + ' km²';
+                showWarningModal(areaText);
+                return;
+            }
+
+            var ne = currentBounds.getNorthEast();
+            var sw = currentBounds.getSouthWest();
+
+            // Create bounding box object
+            var bbox = {
+                south: sw.lat,
+                west: sw.lng,
+                north: ne.lat,
+                east: ne.lng,
+                area: currentArea
+            };
+
+            // Send to C# via window.chrome.webview
+            if (window.chrome && window.chrome.webview) {
+                window.chrome.webview.postMessage(JSON.stringify(bbox));
+            } else {
+                alert('Communication with plugin failed. Please try again.');
+            }
+        }
+
+        // Initialize map when page loads
+        window.onload = initMap;
+    </script>
+</body>
+
+</html>

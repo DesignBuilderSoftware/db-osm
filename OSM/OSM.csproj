@@ -1,0 +1,43 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Library</OutputType>
+    <TargetFramework>net48</TargetFramework>
+    <LangVersion>7.3</LangVersion>
+    <AssemblyName>OSM</AssemblyName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Exclude test files from plugin build -->
+    <Compile Remove="Program.cs" />
+    <Compile Remove="TestApiConnection.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- DesignBuilder API References -->
+    <Reference Include="DB.Api">
+      <HintPath>C:\Program Files (x86)\DesignBuilder\Lib\DB.Api.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="DB.Extensibility.Contracts">
+      <HintPath>C:\Program Files (x86)\DesignBuilder\Lib\DB.Extensibility.Contracts.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="System.ComponentModel.Composition" />
+    <Reference Include="System.Windows.Forms" />
+    <Reference Include="System.Net.Http" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- WebView2 for embedded browser -->
+    <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.2420.47" />
+    <!-- JSON parsing for Overpass API -->
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Embed HTML resources -->
+    <EmbeddedResource Include="Resources\MapInterface.html" />
+  </ItemGroup>
+
+</Project>
