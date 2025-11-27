@@ -35,6 +35,25 @@ namespace OSM
             this.StartPosition = FormStartPosition.CenterScreen;
             this.MinimumSize = new System.Drawing.Size(800, 600);
 
+            // Load icon from plugin directory
+            try
+            {
+                var pluginDir = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
+                var iconPath = Path.Combine(pluginDir, "Resources", "Openstreetmap_logo.png");
+                if (File.Exists(iconPath))
+                {
+                    using (var bitmap = new System.Drawing.Bitmap(iconPath))
+                    {
+                        var iconHandle = bitmap.GetHicon();
+                        this.Icon = System.Drawing.Icon.FromHandle(iconHandle);
+                    }
+                }
+            }
+            catch
+            {
+                // Ignore icon loading errors
+            }
+
             // Create WebView2 control
             webView = new WebView2();
             webView.Dock = DockStyle.Fill;
@@ -98,39 +117,33 @@ namespace OSM
         {
             try
             {
-                // Load HTML from embedded resource
-                var assembly = Assembly.GetExecutingAssembly();
-                var resourceName = "OSM.Resources.MapInterface.html";
+                // Load HTML from plugin directory
+                var pluginDir = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
+                var htmlSource = Path.Combine(pluginDir, "Resources", "MapInterface.html");
 
-                using (Stream stream = assembly.GetManifestResourceStream(resourceName))
+                if (!File.Exists(htmlSource))
                 {
-                    if (stream == null)
-                    {
-                        throw new Exception($"Could not find embedded resource: {resourceName}");
-                    }
-
-                    using (StreamReader reader = new StreamReader(stream))
-                    {
-                        string html = reader.ReadToEnd();
-
-                        // Save HTML to temp file first
-                        var tempPath = Path.Combine(Path.GetTempPath(), "OSM_MapInterface");
-                        Directory.CreateDirectory(tempPath);
-                        var htmlPath = Path.Combine(tempPath, "map.html");
-                        File.WriteAllText(htmlPath, html);
-
-                        // Set up a virtual host mapping to avoid CORS issues
-                        // This gives the page a proper origin (https://osm.local) instead of "null"
-                        const string virtualHost = "osm.local";
-                        webView.CoreWebView2.SetVirtualHostNameToFolderMapping(
-                            virtualHost,
-                            tempPath,
-                            CoreWebView2HostResourceAccessKind.Allow);
-
-                        // Navigate using virtual host
-                        webView.CoreWebView2.Navigate($"https://{virtualHost}/map.html");
-                    }
+                    throw new Exception($"Could not find HTML file: {htmlSource}");
                 }
+
+                // Copy to temp directory
+                var tempPath = Path.Combine(Path.GetTempPath(), "OSM_MapInterface");
+                Directory.CreateDirectory(tempPath);
+
+                // Copy HTML
+                var htmlDest = Path.Combine(tempPath, "map.html");
+                File.Copy(htmlSource, htmlDest, true);
+
+                // Set up a virtual host mapping to avoid CORS issues
+                // This gives the page a proper origin (https://osm.local) instead of "null"
+                const string virtualHost = "osm.local";
+                webView.CoreWebView2.SetVirtualHostNameToFolderMapping(
+                    virtualHost,
+                    tempPath,
+                    CoreWebView2HostResourceAccessKind.Allow);
+
+                // Navigate using virtual host
+                webView.CoreWebView2.Navigate($"https://{virtualHost}/map.html");
             }
             catch (Exception ex)
             {

@@ -323,7 +323,7 @@ namespace OSM
             try
             {
                 // Try to read help text from file
-                string helpFilePath = Path.Combine(Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location), "help_readme.md");
+                string helpFilePath = Path.Combine(Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location), "Resources", "help_readme.md");
                 string helpMessage = File.ReadAllText(helpFilePath);
 
                 MessageBox.Show(helpMessage, "OSM Plugin - How to Use",

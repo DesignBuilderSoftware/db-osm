@@ -26,8 +26,19 @@
     <!-- NuGet Packages -->
     <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.2420.47" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
-    <!-- Embed HTML resources -->
-    <EmbeddedResource Include="Resources\MapInterface.html" />
+    <!-- Copy resources to output directory -->
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="Resources\MapInterface.html">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="Resources\Openstreetmap_logo.png">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="Resources\help_readme.md">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
 
 </Project>
