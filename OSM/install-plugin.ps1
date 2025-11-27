@@ -33,6 +33,9 @@ Copy-Item "$sourceBinFolder\Microsoft.Web.WebView2.*.dll" -Destination $pluginsF
 # Copy Newtonsoft.Json DLL
 Copy-Item "$sourceBinFolder\Newtonsoft.Json.dll" -Destination $pluginsFolder -Force
 
+# Copy help file
+Copy-Item "$sourceBinFolder\help_readme.md" -Destination $pluginsFolder -Force
+
 # Copy runtimes folder (contains platform-specific WebView2 binaries)
 # Only copy x86 runtime (exclude ARM64 and x64)
 if (Test-Path "$sourceBinFolder\runtimes") {

@@ -18,8 +18,9 @@ namespace OSM
         {
             public const string Root = "OSM";
             public const string LoadOSM = "LoadOSM";
-            public const string SelectFromMap = "SelectFromMap";
+            public const string BrowseOpenStreetMap = "BrowseOpenStreetMap";
             public const string OpenStreetMapWebsite = "OpenStreetMapWebsite";
+            public const string Help = "Help";
         }
 
         class MenuItem
@@ -52,9 +53,10 @@ namespace OSM
             {
                 StringBuilder menu = new StringBuilder();
                 menu.AppendFormat("*OSM,{0}", MenuKeys.Root);
-                menu.AppendFormat("*>Select area from OpenStreetMap,{0}", MenuKeys.SelectFromMap);
+                menu.AppendFormat("*>Browse OpenStreetMap,{0}", MenuKeys.BrowseOpenStreetMap);
                 menu.AppendFormat("*>Load OpenStreetMap file,{0}", MenuKeys.LoadOSM);
                 menu.AppendFormat("*>OpenStreetMap website,{0}", MenuKeys.OpenStreetMapWebsite);
+                menu.AppendFormat("*>Help,{0}", MenuKeys.Help);
                 return menu.ToString();
             }
         }
@@ -84,9 +86,10 @@ namespace OSM
         public override void Create()
         {
             mMenuItems.Add(MenuKeys.Root, new MenuItem());
-            mMenuItems.Add(MenuKeys.SelectFromMap, new MenuItem(SelectAreaFromMap, false));
+            mMenuItems.Add(MenuKeys.BrowseOpenStreetMap, new MenuItem(SelectAreaFromMap, false));
             mMenuItems.Add(MenuKeys.LoadOSM, new MenuItem(LoadOSM, false));
             mMenuItems.Add(MenuKeys.OpenStreetMapWebsite, new MenuItem(OpenOpenStreetMapWebsite, true));
+            mMenuItems.Add(MenuKeys.Help, new MenuItem(ShowHelp, true));
         }
 
         public void LoadOSM()
@@ -316,15 +319,62 @@ namespace OSM
             }
         }
 
+        public void ShowHelp()
+        {
+            try
+            {
+                // Try to read help text from file
+                string helpFilePath = Path.Combine(Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location), "help_readme.md");
+                string helpMessage;
+
+                if (File.Exists(helpFilePath))
+                {
+                    helpMessage = File.ReadAllText(helpFilePath);
+                }
+                else
+                {
+                    // Fallback message if file not found
+                    helpMessage = @"How to Use
+
+Option 1: Browse Map
+
+1. Open DesignBuilder and create or open a model
+2. Click OSM → Select area from OpenStreetMap
+3. A map will open - navigate to your location
+4. Click the square button and draw a rectangle around the area you want
+5. Click Load to DesignBuilder
+6. Done! The blocks will appear in your model
+
+Option 2: Import a File
+
+1. Go to OpenStreetMap.org and navigate to your location
+2. Click Export at the top
+3. Select an area under 5 km²
+4. Click the blue Export button to download the .osm file
+5. In DesignBuilder, click OSM → Load OpenStreetMap file
+6. Select your downloaded .osm file
+7. Done! The blocks will appear in your model";
+                }
+
+                MessageBox.Show(helpMessage, "OSM Plugin - How to Use",
+                    MessageBoxButtons.OK, MessageBoxIcon.Information);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error loading help: {ex.Message}", "Error",
+                    MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
         public override void ModelLoaded()
         {
-            mMenuItems[MenuKeys.SelectFromMap].IsEnabled = true;
+            mMenuItems[MenuKeys.BrowseOpenStreetMap].IsEnabled = true;
             mMenuItems[MenuKeys.LoadOSM].IsEnabled = true;
         }
 
         public override void ModelUnloaded()
         {
-            mMenuItems[MenuKeys.SelectFromMap].IsEnabled = false;
+            mMenuItems[MenuKeys.BrowseOpenStreetMap].IsEnabled = false;
             mMenuItems[MenuKeys.LoadOSM].IsEnabled = false;
         }
     }

@@ -1,147 +1,62 @@
-# OSM to gbXML Converter & DesignBuilder Plugin
+# OpenStreetMap Plugin for DesignBuilder
 
-This project provides two ways to convert OpenStreetMap (OSM) data to gbXML format:
+Import real-world buildings from OpenStreetMap directly into DesignBuilder. Browse a map, click on a location, and automatically download building data into your model.
 
-1. **Console Application** - Standalone command-line tool for OSM to gbXML conversion
-2. **DesignBuilder Plugin** - Integrated plugin that allows direct import of OSM files into DesignBuilder
+## What Does This Plugin Do?
 
-## Project Structure
+This plugin lets you:
+- **Browse a map** and click to download buildings from that area
+- **Import building files** (.osm format) from OpenStreetMap
+- **Automatically create 3D buildings** in DesignBuilder with the correct heights and shapes
 
-```
-OSM/
-├── Core Components
-│   ├── OsmToGbXmlConverter.cs           - Main conversion logic (OSM → gbXML)
-│   ├── OverpassApiClient.cs             - Overpass API client for fetching OSM data
-│   └── DesignBuilderPlugin.cs           - DesignBuilder plugin implementation
-│
-├── UI Components
-│   └── MapBrowserForm.cs                - Interactive map browser form
-│
-├── Resources
-│   └── MapInterface.html                - Embedded browser map interface
-│
-├── Configuration
-│   ├── OSM.csproj                       - Project configuration
-│   ├── OSM.sln                          - Solution file
-│   └── install-plugin.ps1               - PowerShell installation script
-│
-├── Documentation
-│   ├── README.md                        - Main documentation (this file)
-│   ├── QUICK_START.md                   - Quick start guide
-│   └── EMBEDDED_BROWSER_GUIDE.md        - Guide for embedded browser features
-│
-└── External Dependencies (local copies)
-    ├── DB.Api.dll                       - DesignBuilder API
-    └── DB.Extensibility.Contracts.dll   - DesignBuilder extensibility contracts
-```
+## Installation
 
-## Usage
+1. Open a command prompt in the project folder
+2. Run: `dotnet build -c Release`
+3. Run: `.\install-plugin.ps1`
+4. Restart DesignBuilder
 
-### DesignBuilder Plugin
+After installation, you'll see a new "OSM" menu in DesignBuilder.
 
-The plugin adds a new menu to DesignBuilder with two options:
+## How to Use
 
-1. **Import from OpenStreetMap** - Directly import and convert OSM files
-2. **Load gbXML** - Import pre-converted gbXML files
+### Option 1: Browse Map
 
-#### Installing the Plugin
+1. Click **OSM → Browse OpenStreetMap** to open a map
+2. Navigate to your location
+3. Click the square button and draw a rectangle around the area you want
+4. Click **Load to DesignBuilder**
+5. Done! The blocks will appear in your model
 
-1. **Update DesignBuilder API References:**
+### Option 2: Import a File
 
-   Edit `OsmToGbXml.csproj` and uncomment the reference lines, updating the paths to match your DesignBuilder installation:
+1. Click **OSM → OpenStreetMap website** to open [OpenStreetMap.org](https://www.openstreetmap.org)
+2. Navigate to your location
+3. Click **Export** at the top
+4. Select an area
+5. Click the blue **Export** button to download the .osm file
+6. In DesignBuilder, click **OSM → Load OpenStreetMap file**
+7. Select your downloaded .osm file
+8. Done! The blocks will appear in your model
 
-   ```xml
-   <Reference Include="DB.Api">
-     <HintPath>C:\Program Files\DesignBuilder\DB.Api.dll</HintPath>
-     <Private>False</Private>
-   </Reference>
-   <Reference Include="DB.Extensibility.Contracts">
-     <HintPath>C:\Program Files\DesignBuilder\DB.Extensibility.Contracts.dll</HintPath>
-     <Private>False</Private>
-   </Reference>
-   ```
+## Common Problems
 
-2. **Build the Project:**
+**The OSM menu doesn't appear in DesignBuilder**
+- Make sure you restarted DesignBuilder after installation
+- Check that the plugin file was copied correctly
 
-   ```bash
-   dotnet build
-   ```
+**"No buildings found" message**
+- The area you selected might not have building data in OpenStreetMap
+- Try a different location with buildings visible on the map
 
-3. **Copy Plugin to DesignBuilder:**
+**The map doesn't load**
+- Check your internet connection
+- Try importing a file instead (see Option 2 above)
 
-   Copy the following file from `bin\Release\net48\` to your DesignBuilder plugins folder:
-   - `OsmToGbXml.dll`
+**Buttons are grayed out in the map**
+- You need to draw a rectangle on the map first using the square button
 
-   The DesignBuilder plugins folder is typically located at:
-   - `C:\Users\[YourUsername]\AppData\Roaming\DesignBuilder\Plugins\`
+## About OpenStreetMap Data
 
-4. **Restart DesignBuilder**
-
-5. **Use the Plugin:**
-   - Open or create a model in DesignBuilder
-   - Look for the "OSM2GBXML" menu
-   - Select "Import from OpenStreetMap" to load OSM files directly
-   - The plugin will convert the OSM file to gbXML and import it automatically
-
-## Features
-
-### OSM Conversion Features
-
-- Extracts building geometries from OpenStreetMap data
-- Converts geographic coordinates (lat/lon) to metric coordinates
-- Generates 3D building models as outline blocks.
-- Supports building height from OSM tags:
-  - `height` tag (in meters)
-  - `building:levels` tag (assumes 3m per level)
-  - Default height of 3m if no height data available
-
-### Plugin Features
-
-- **Direct OSM Import:** Skip the intermediate conversion step
-- **Automatic Conversion:** Converts OSM to gbXML in memory
-
-## Supported OSM Tags
-
-The converter recognizes buildings with the following tags:
-- `building=*` (any building type)
-- `building:part=*` (building parts)
-- `height=*` (building height in meters)
-- `building:levels=*` (number of floors)
-- `name=*` (building name)
-
-
-## Development
-
-To modify or extend the converter:
-
-1. **Core Conversion Logic:** Edit `OsmToGbXmlConverter.cs`
-2. **Console UI:** Edit `Program.cs`
-3. **Plugin UI:** Edit `DesignBuilderPlugin.cs`
-
-The converter logic is separated from both interfaces, making it easy to maintain and extend.
-
-## Troubleshooting
-
-### Console Application Issues
-
-- **"No buildings found":** Check that your OSM file contains ways with `building` tags
-- **Missing file errors:** Verify the input file path is correct
-
-### Plugin Issues
-
-- **Plugin doesn't appear in DesignBuilder:**
-  - Verify DLL is in correct plugins folder
-  - Check that DesignBuilder API references are correctly configured
-  - Ensure project builds without errors
-
-- **Import errors:**
-  - Check that the OSM file contains valid building data
-  - Verify DesignBuilder model is loaded before attempting import
-
-- **Missing menu items:**
-  - Ensure a model is loaded in DesignBuilder (menu items are disabled when no model is loaded)
-
-## License
-
-This project integrates OpenStreetMap data, which is © OpenStreetMap contributors and available under the Open Database License (ODbL).
+This plugin uses building data from OpenStreetMap, which is created by volunteers around the world. The data is © OpenStreetMap contributors.
 

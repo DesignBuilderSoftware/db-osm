@@ -40,4 +40,11 @@
     <EmbeddedResource Include="Resources\MapInterface.html" />
   </ItemGroup>
 
+  <ItemGroup>
+    <!-- Copy help file to output directory -->
+    <None Include="help_readme.md">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
 </Project>
