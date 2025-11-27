@@ -64,13 +64,14 @@ namespace OSM
                 return h;
             if (tags.ContainsKey("building:levels") && int.TryParse(tags["building:levels"], out int l))
                 return l * 3.0;
-            return 3.0;
+            return 5.0;
         }
 
         private Coordinate LatLonToMeters(double lat, double lon, double oLat, double oLon)
         {
-            double x = 6371000 * (lon - oLon) * Math.PI / 180 * Math.Cos(oLat * Math.PI / 180);
-            double y = 6371000 * (lat - oLat) * Math.PI / 180;
+            int earthRadius = 6371000; // in meters
+            double x = earthRadius * (lon - oLon) * Math.PI / 180 * Math.Cos(oLat * Math.PI / 180);
+            double y = earthRadius * (lat - oLat) * Math.PI / 180;
             return new Coordinate { X = x, Y = y };
         }
 

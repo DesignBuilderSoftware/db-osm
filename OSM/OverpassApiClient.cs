@@ -124,12 +124,12 @@ namespace OSM
             // - (._;>;) recursively includes all nodes referenced by the ways
             // - out meta; outputs all data with metadata
             var query = $@"[out:xml][timeout:90];
-(
-  way[""building""]({bbox});
-  way[""building:part""]({bbox});
-);
-(._;>;);
-out meta;";
+                        (
+                        way[""building""]({bbox});
+                        way[""building:part""]({bbox});
+                        );
+                        (._;>;);
+                        out meta;";
 
             return query;
         }
@@ -166,20 +166,6 @@ out meta;";
             {
                 errorMessage = "Longitude must be between -180 and 180 degrees.";
                 return false;
-            }
-
-            // Calculate approximate area
-            double latDiff = north - south;
-            double lonDiff = east - west;
-            double latKm = latDiff * 111.32; // 1 degree latitude ≈ 111.32 km
-            double lonKm = lonDiff * 111.32 * Math.Cos((north + south) / 2 * Math.PI / 180);
-            double areaKm2 = Math.Abs(latKm * lonKm);
-
-            // Warn if area is very large (>25 km²)
-            if (areaKm2 > 25)
-            {
-                errorMessage = $"Warning: The selected area ({areaKm2:F2} km²) is very large. This may take a long time to process.";
-                // Still return true, but with a warning message
             }
 
             return true;

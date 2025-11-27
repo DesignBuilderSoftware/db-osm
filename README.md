@@ -1,6 +1,7 @@
 # OpenStreetMap Plugin for DesignBuilder
 
-Import real-world buildings from OpenStreetMap directly into DesignBuilder. Browse a map, click on a location, and automatically download building data into your model.
+Import real-world buildings from OpenStreetMap directly into DesignBuilder. 
+Browse a map, click on a location, and automatically download building geometry into your model.
 
 ## What Does This Plugin Do?
 
