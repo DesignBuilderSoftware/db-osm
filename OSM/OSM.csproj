@@ -29,22 +29,11 @@
   </ItemGroup>
 
   <ItemGroup>
-    <!-- WebView2 for embedded browser -->
+    <!-- NuGet Packages -->
     <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.2420.47" />
-    <!-- JSON parsing for Overpass API -->
     <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
-  </ItemGroup>
-
-  <ItemGroup>
     <!-- Embed HTML resources -->
     <EmbeddedResource Include="Resources\MapInterface.html" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <!-- Copy help file to output directory -->
-    <None Include="help_readme.md">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
   </ItemGroup>
 
 </Project>

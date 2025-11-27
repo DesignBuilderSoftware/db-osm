@@ -33,18 +33,9 @@ Copy-Item "$sourceBinFolder\Microsoft.Web.WebView2.*.dll" -Destination $pluginsF
 # Copy Newtonsoft.Json DLL
 Copy-Item "$sourceBinFolder\Newtonsoft.Json.dll" -Destination $pluginsFolder -Force
 
-# Copy help file
-Copy-Item "$sourceBinFolder\help_readme.md" -Destination $pluginsFolder -Force
-
-# Copy runtimes folder (contains platform-specific WebView2 binaries)
-# Only copy x86 runtime (exclude ARM64 and x64)
-if (Test-Path "$sourceBinFolder\runtimes") {
-    $runtimesFolder = Join-Path $pluginsFolder "runtimes"
-
-    # Copy win-x86 runtime
-    if (Test-Path "$sourceBinFolder\runtimes\win-x86") {
-        Copy-Item "$sourceBinFolder\runtimes\win-x86" -Destination $runtimesFolder -Recurse -Force
-    }
+# Copy WebView2Loader.dll (x86 version)
+if (Test-Path "$sourceBinFolder\runtimes\win-x86\native\WebView2Loader.dll") {
+    Copy-Item "$sourceBinFolder\runtimes\win-x86\native\WebView2Loader.dll" -Destination $pluginsFolder -Force
 }
 
 if ($?) {
@@ -53,7 +44,8 @@ if ($?) {
     Write-Host "`nDependencies installed:" -ForegroundColor Green
     Write-Host "  - Microsoft.Web.WebView2 (Core, WinForms, Wpf)" -ForegroundColor Gray
     Write-Host "  - Newtonsoft.Json" -ForegroundColor Gray
-    Write-Host "  - WebView2 runtime binaries (win-x86)" -ForegroundColor Gray
+    Write-Host "  - WebView2Loader.dll" -ForegroundColor Gray
+
     Write-Host "`nNext steps:" -ForegroundColor Yellow
     Write-Host "1. Close DesignBuilder if it's running" -ForegroundColor White
     Write-Host "2. Restart DesignBuilder" -ForegroundColor White
