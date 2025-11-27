@@ -124,7 +124,7 @@ This query:
 
 ```
 OSM
-├── Select Area from Map    [NEW - Primary method]
+├── Select area from OpenStreetMap    [NEW - Primary method]
 ├── Load OpenStreetMap file [Legacy - File-based import]
 └── OpenStreetMap website   [Opens external browser]
 ```
