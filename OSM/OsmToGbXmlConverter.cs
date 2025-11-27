@@ -98,7 +98,7 @@ namespace OSM
                 new XAttribute("buildingType", "Mixed"),
                 new XElement("Name", "Combined Building"));
 
-            int spaces = 0;
+            int blockCount = 0;
             for (int i = 0; i < buildings.Count; i++)
             {
                 var b = buildings[i];
@@ -109,11 +109,11 @@ namespace OSM
                     ? coords.GetRange(0, coords.Count - 1)
                     : coords;
 
-                string spaceName = b.Tags.ContainsKey("name") ? b.Tags["name"] : $"Space {i + 1}";
-                var space = new XElement("Space",
+                string blockName = b.Tags.ContainsKey("name") ? b.Tags["name"] : $"Space {i + 1}";
+                var block = new XElement("Space",
                     new XAttribute("id", $"space-{b.Id}"),
                     new XAttribute("buildingStoreyIdRef", "storey-1"),
-                    new XElement("Name", spaceName));
+                    new XElement("Name", blockName));
 
                 var shell = new XElement("ClosedShell");
 
@@ -139,9 +139,9 @@ namespace OSM
                         CP(coord1.X, coord1.Y, h)));
                 }
 
-                space.Add(new XElement("ShellGeometry", new XAttribute("id", $"shell-{b.Id}"), shell));
-                building.Add(space);
-                spaces++;
+                block.Add(new XElement("ShellGeometry", new XAttribute("id", $"shell-{b.Id}"), shell));
+                building.Add(block);
+                blockCount++;
             }
 
             building.Add(new XElement("BuildingStorey",
@@ -151,7 +151,7 @@ namespace OSM
 
             campus.Add(building);
             gbxml.Add(campus);
-            return Tuple.Create(gbxml.ToString(), spaces);
+            return Tuple.Create(gbxml.ToString(), blockCount);
         }
 
         private XElement CP(double x, double y, double z)

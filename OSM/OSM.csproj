@@ -8,12 +8,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <!-- Exclude test files from plugin build -->
-    <Compile Remove="Program.cs" />
-    <Compile Remove="TestApiConnection.cs" />
-  </ItemGroup>
-
-  <ItemGroup>
     <!-- DesignBuilder API References -->
     <Reference Include="DB.Api">
       <HintPath>C:\Program Files (x86)\DesignBuilder\Lib\DB.Api.dll</HintPath>

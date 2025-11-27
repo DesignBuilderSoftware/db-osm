@@ -17,7 +17,7 @@ namespace OSM
         class MenuKeys
         {
             public const string Root = "OSM";
-            public const string LoadOSM = "LoadOSM";
+            public const string LoadOSMFile = "LoadOSMFile";
             public const string BrowseOpenStreetMap = "BrowseOpenStreetMap";
             public const string OpenStreetMapWebsite = "OpenStreetMapWebsite";
             public const string Help = "Help";
@@ -54,7 +54,7 @@ namespace OSM
                 StringBuilder menu = new StringBuilder();
                 menu.AppendFormat("*OSM,{0}", MenuKeys.Root);
                 menu.AppendFormat("*>Browse OpenStreetMap,{0}", MenuKeys.BrowseOpenStreetMap);
-                menu.AppendFormat("*>Load OpenStreetMap file,{0}", MenuKeys.LoadOSM);
+                menu.AppendFormat("*>Load OpenStreetMap file,{0}", MenuKeys.LoadOSMFile);
                 menu.AppendFormat("*>OpenStreetMap website,{0}", MenuKeys.OpenStreetMapWebsite);
                 menu.AppendFormat("*>Help,{0}", MenuKeys.Help);
                 return menu.ToString();
@@ -87,12 +87,12 @@ namespace OSM
         {
             mMenuItems.Add(MenuKeys.Root, new MenuItem());
             mMenuItems.Add(MenuKeys.BrowseOpenStreetMap, new MenuItem(SelectAreaFromMap, false));
-            mMenuItems.Add(MenuKeys.LoadOSM, new MenuItem(LoadOSM, false));
+            mMenuItems.Add(MenuKeys.LoadOSMFile, new MenuItem(LoadOSMFile, false));
             mMenuItems.Add(MenuKeys.OpenStreetMapWebsite, new MenuItem(OpenOpenStreetMapWebsite, true));
             mMenuItems.Add(MenuKeys.Help, new MenuItem(ShowHelp, true));
         }
 
-        public void LoadOSM()
+        public void LoadOSMFile()
         {
             OpenFileDialog openFileDialog = new OpenFileDialog();
             openFileDialog.Filter = "OpenStreetMap files (*.osm)|*.osm|All files (*.*)|*.*";
@@ -109,20 +109,20 @@ namespace OSM
                     string tempGbXmlFile = Path.Combine(Path.GetTempPath(), "osm_converted.xml");
 
                     var converter = new OsmToGbXmlConverter(osmFile);
-                    int numBuildings = converter.ParseOsm();
+                    int numBlocks = converter.ParseOsm();
 
-                    if (numBuildings == 0)
+                    if (numBlocks == 0)
                     {
-                        MessageBox.Show("No buildings found in the OSM file.", "OSM Import",
+                        MessageBox.Show("No geometry found in the OSM file.", "OSM Import",
                             MessageBoxButtons.OK, MessageBoxIcon.Warning);
                         return;
                     }
 
                     var result = converter.CreateGbXml();
-                    string xmlContent = result.Item1;
-                    int spaces = result.Item2;
+                    string gbXMLContent = result.Item1;
+                    //int blockCount = result.Item2;
 
-                    File.WriteAllText(tempGbXmlFile, xmlContent);
+                    File.WriteAllText(tempGbXmlFile, gbXMLContent);
 
                     Site site = ApiEnvironment.Site;
                     site.SetAttribute("ImportGBXMLBlockMode", "0");
@@ -132,7 +132,7 @@ namespace OSM
                     gbXmlFile.ImportModel();
 
                     MessageBox.Show(
-                        $"Successfully imported {numBuildings} blocks from OpenStreetMap.",
+                        $"Successfully imported {numBlocks} blocks from OpenStreetMap.",
                         "OSM Import Complete",
                         MessageBoxButtons.OK,
                         MessageBoxIcon.Information);
@@ -237,12 +237,12 @@ namespace OSM
 
                         // Convert using existing converter
                         var converter = new OsmToGbXmlConverter(tempOsmFile);
-                        int numBuildings = converter.ParseOsm();
+                        int numBlocks = converter.ParseOsm();
 
-                        if (numBuildings == 0)
+                        if (numBlocks == 0)
                         {
                             progressForm.Close();
-                            MessageBox.Show("No buildings found in the selected area.", "OSM Import",
+                            MessageBox.Show("No geometry found in the selected area.", "OSM Import",
                                 MessageBoxButtons.OK, MessageBoxIcon.Warning);
 
                             try { File.Delete(tempOsmFile); } catch { }
@@ -250,15 +250,15 @@ namespace OSM
                         }
 
                         var conversionResult = converter.CreateGbXml();
-                        string xmlContent = conversionResult.Item1;
-                        int spaces = conversionResult.Item2;
+                        string gbXMLContent = conversionResult.Item1;
+                        //int blockCount = conversionResult.Item2;
 
                         progressLabel.Text = "Importing into DesignBuilder...";
                         Application.DoEvents();
 
                         // Import into DesignBuilder
                         string tempGbXmlFile = Path.Combine(Path.GetTempPath(), "osm_converted.xml");
-                        File.WriteAllText(tempGbXmlFile, xmlContent);
+                        File.WriteAllText(tempGbXmlFile, gbXMLContent);
 
                         Site site = ApiEnvironment.Site;
                         site.SetAttribute("ImportGBXMLBlockMode", "0");
@@ -271,8 +271,7 @@ namespace OSM
                         progressForm.Close();
 
                         MessageBox.Show(
-                            $"Successfully imported {numBuildings} buildings from OpenStreetMap.\n\n" +
-                            $"Area: {args.BoundingBox.Area:F2} km²",
+                            $"Successfully imported {numBlocks} blocks from OpenStreetMap.",
                             "OSM Import Complete",
                             MessageBoxButtons.OK,
                             MessageBoxIcon.Information);
@@ -325,36 +324,7 @@ namespace OSM
             {
                 // Try to read help text from file
                 string helpFilePath = Path.Combine(Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location), "help_readme.md");
-                string helpMessage;
-
-                if (File.Exists(helpFilePath))
-                {
-                    helpMessage = File.ReadAllText(helpFilePath);
-                }
-                else
-                {
-                    // Fallback message if file not found
-                    helpMessage = @"How to Use
-
-Option 1: Browse Map
-
-1. Open DesignBuilder and create or open a model
-2. Click OSM → Select area from OpenStreetMap
-3. A map will open - navigate to your location
-4. Click the square button and draw a rectangle around the area you want
-5. Click Load to DesignBuilder
-6. Done! The blocks will appear in your model
-
-Option 2: Import a File
-
-1. Go to OpenStreetMap.org and navigate to your location
-2. Click Export at the top
-3. Select an area under 5 km²
-4. Click the blue Export button to download the .osm file
-5. In DesignBuilder, click OSM → Load OpenStreetMap file
-6. Select your downloaded .osm file
-7. Done! The blocks will appear in your model";
-                }
+                string helpMessage = File.ReadAllText(helpFilePath);
 
                 MessageBox.Show(helpMessage, "OSM Plugin - How to Use",
                     MessageBoxButtons.OK, MessageBoxIcon.Information);
@@ -369,13 +339,13 @@ Option 2: Import a File
         public override void ModelLoaded()
         {
             mMenuItems[MenuKeys.BrowseOpenStreetMap].IsEnabled = true;
-            mMenuItems[MenuKeys.LoadOSM].IsEnabled = true;
+            mMenuItems[MenuKeys.LoadOSMFile].IsEnabled = true;
         }
 
         public override void ModelUnloaded()
         {
             mMenuItems[MenuKeys.BrowseOpenStreetMap].IsEnabled = false;
-            mMenuItems[MenuKeys.LoadOSM].IsEnabled = false;
+            mMenuItems[MenuKeys.LoadOSMFile].IsEnabled = false;
         }
     }
 }
