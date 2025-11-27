@@ -59,8 +59,23 @@ namespace OSM
                 var environment = await CoreWebView2Environment.CreateAsync(null, Path.GetTempPath(), null);
                 await webView.EnsureCoreWebView2Async(environment);
 
+                // Enable web security features that allow API calls
+                var settings = webView.CoreWebView2.Settings;
+                settings.AreDefaultContextMenusEnabled = true;
+                settings.IsWebMessageEnabled = true;
+                settings.IsScriptEnabled = true;
+
+                // Set user agent to identify as a modern browser
+                webView.CoreWebView2.Settings.UserAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36";
+
+                // Enable DevTools for debugging (can be opened with F12)
+                settings.AreDevToolsEnabled = true;
+
                 // Set up message handler for JavaScript communication
                 webView.CoreWebView2.WebMessageReceived += CoreWebView2_WebMessageReceived;
+
+                // Add console message handler for debugging
+                webView.CoreWebView2.WebResourceResponseReceived += CoreWebView2_WebResourceResponseReceived;
 
                 // Load the HTML map interface
                 LoadMapInterface();
@@ -98,8 +113,22 @@ namespace OSM
                     {
                         string html = reader.ReadToEnd();
 
-                        // Navigate to the HTML content
-                        webView.CoreWebView2.NavigateToString(html);
+                        // Save HTML to temp file first
+                        var tempPath = Path.Combine(Path.GetTempPath(), "OSM_MapInterface");
+                        Directory.CreateDirectory(tempPath);
+                        var htmlPath = Path.Combine(tempPath, "map.html");
+                        File.WriteAllText(htmlPath, html);
+
+                        // Set up a virtual host mapping to avoid CORS issues
+                        // This gives the page a proper origin (https://osm.local) instead of "null"
+                        const string virtualHost = "osm.local";
+                        webView.CoreWebView2.SetVirtualHostNameToFolderMapping(
+                            virtualHost,
+                            tempPath,
+                            CoreWebView2HostResourceAccessKind.Allow);
+
+                        // Navigate using virtual host
+                        webView.CoreWebView2.Navigate($"https://{virtualHost}/map.html");
                     }
                 }
             }
@@ -139,6 +168,12 @@ namespace OSM
                     MessageBoxButtons.OK,
                     MessageBoxIcon.Error);
             }
+        }
+
+        private void CoreWebView2_WebResourceResponseReceived(object sender, CoreWebView2WebResourceResponseReceivedEventArgs e)
+        {
+            // Log web resource responses for debugging
+            System.Diagnostics.Debug.WriteLine($"Resource: {e.Request.Uri} - Status: {e.Response.StatusCode}");
         }
 
         protected override void Dispose(bool disposing)

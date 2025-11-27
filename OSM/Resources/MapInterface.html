@@ -21,7 +21,7 @@
 
         #map {
             position: absolute;
-            top: 60px;
+            top: 100px;
             bottom: 0;
             left: 0;
             right: 0;
@@ -32,15 +32,23 @@
             top: 0;
             left: 0;
             right: 0;
-            height: 45px;
+            height: 80px;
             background-color: #28722e;
             color: white;
             padding: 10px 20px;
             box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
             z-index: 1000;
+        }
+
+        .toolbar-row {
             display: flex;
             align-items: center;
             justify-content: space-between;
+            margin-bottom: 10px;
+        }
+
+        .toolbar-row:last-child {
+            margin-bottom: 0;
         }
 
         #toolbar h3 {
@@ -182,21 +190,121 @@
         .btn-modal-primary:hover {
             background-color: #229954;
         }
+
+        #searchContainer {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex: 1;
+            max-width: 600px;
+        }
+
+        #searchInput {
+            flex: 1;
+            padding: 8px 12px;
+            font-size: 14px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            outline: none;
+        }
+
+        #searchInput:focus {
+            border-color: #3498db;
+            box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2);
+        }
+
+        #searchBtn {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            font-size: 14px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+            white-space: nowrap;
+        }
+
+        #searchBtn:hover {
+            background-color: #2980b9;
+        }
+
+        #searchBtn:disabled {
+            background-color: #95a5a6;
+            cursor: not-allowed;
+        }
+
+        #searchResults {
+            position: absolute;
+            top: 100px;
+            left: 20px;
+            right: 20px;
+            max-width: 600px;
+            background-color: white;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+            max-height: 300px;
+            overflow-y: auto;
+            z-index: 1001;
+            display: none;
+        }
+
+        .search-result-item {
+            padding: 10px 15px;
+            border-bottom: 1px solid #eee;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .search-result-item:last-child {
+            border-bottom: none;
+        }
+
+        .search-result-item:hover {
+            background-color: #f5f5f5;
+        }
+
+        .search-result-name {
+            font-weight: bold;
+            color: #2c3e50;
+            margin-bottom: 3px;
+        }
+
+        .search-result-address {
+            font-size: 12px;
+            color: #7f8c8d;
+        }
+
+        .search-no-results {
+            padding: 15px;
+            text-align: center;
+            color: #7f8c8d;
+        }
     </style>
 </head>
 
 <body>
     <div id="toolbar">
-        <div style="display: flex; align-items: center;">
+        <div class="toolbar-row">
             <h3>Select area from OpenStreetMap</h3>
+            <div>
+                <button id="clearBtn" class="btn" onclick="clearSelection()">Clear Selection</button>
+                <button id="loadBtn" class="btn btn-success" onclick="loadToDesignBuilder()" disabled>Load to
+                    DesignBuilder</button>
+            </div>
+        </div>
+        <div class="toolbar-row">
+            <div id="searchContainer">
+                <input type="text" id="searchInput" placeholder="Search for a location (e.g., London, Paris, New York)"
+                       onkeypress="handleSearchKeyPress(event)" />
+                <button id="searchBtn" onclick="searchLocation()">Search</button>
+            </div>
             <span id="info">Draw a rectangle on the map to select an area</span>
         </div>
-        <div>
-            <button id="clearBtn" class="btn" onclick="clearSelection()">Clear Selection</button>
-            <button id="loadBtn" class="btn btn-success" onclick="loadToDesignBuilder()" disabled>Load to
-                DesignBuilder</button>
-        </div>
     </div>
+
+    <div id="searchResults"></div>
 
     <div id="map"></div>
 
@@ -235,6 +343,7 @@
         var currentBounds = null;
         var currentArea = 0;
         var MAX_AREA_KM2 = 5; // Maximum area in square kilometers
+        var searchMarker = null; // Marker for search results
 
         // Initialize map
         function initMap() {
@@ -410,6 +519,143 @@
                 alert('Communication with plugin failed. Please try again.');
             }
         }
+
+        // Search location using Nominatim (OpenStreetMap's geocoding API)
+        async function searchLocation() {
+            var searchInput = document.getElementById('searchInput');
+            var searchBtn = document.getElementById('searchBtn');
+            var searchResults = document.getElementById('searchResults');
+            var query = searchInput.value.trim();
+
+            if (!query) {
+                return;
+            }
+
+            // Disable search button during search
+            searchBtn.disabled = true;
+            searchBtn.textContent = 'Searching...';
+
+            try {
+                // Call Nominatim API
+                var url = 'https://nominatim.openstreetmap.org/search?format=json&q=' + encodeURIComponent(query) + '&limit=5';
+
+                console.log('Searching for:', query);
+                console.log('URL:', url);
+
+                var response = await fetch(url, {
+                    method: 'GET',
+                    mode: 'cors',
+                    headers: {
+                        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+                    }
+                });
+
+                console.log('Response status:', response.status);
+
+                if (!response.ok) {
+                    throw new Error('Search failed with status: ' + response.status);
+                }
+
+                var results = await response.json();
+                console.log('Results:', results);
+
+                // Display results
+                displaySearchResults(results);
+            } catch (error) {
+                console.error('Search error:', error);
+                searchResults.innerHTML = '<div class="search-no-results">Search failed: ' + error.message + '<br>Please try again.</div>';
+                searchResults.style.display = 'block';
+            } finally {
+                // Re-enable search button
+                searchBtn.disabled = false;
+                searchBtn.textContent = 'Search';
+            }
+        }
+
+        function displaySearchResults(results) {
+            var searchResults = document.getElementById('searchResults');
+
+            if (results.length === 0) {
+                searchResults.innerHTML = '<div class="search-no-results">No results found. Try a different search term.</div>';
+                searchResults.style.display = 'block';
+                return;
+            }
+
+            // Build results HTML
+            var html = '';
+            results.forEach(function (result, index) {
+                html += '<div class="search-result-item" onclick="selectSearchResult(' + index + ')">';
+                html += '<div class="search-result-name">' + escapeHtml(result.display_name.split(',')[0]) + '</div>';
+                html += '<div class="search-result-address">' + escapeHtml(result.display_name) + '</div>';
+                html += '</div>';
+            });
+
+            searchResults.innerHTML = html;
+            searchResults.style.display = 'block';
+
+            // Store results for selection
+            window.searchResultsData = results;
+        }
+
+        function selectSearchResult(index) {
+            var result = window.searchResultsData[index];
+
+            // Hide search results
+            document.getElementById('searchResults').style.display = 'none';
+
+            // Parse coordinates
+            var lat = parseFloat(result.lat);
+            var lon = parseFloat(result.lon);
+
+            // Remove previous search marker if exists
+            if (searchMarker) {
+                map.removeLayer(searchMarker);
+            }
+
+            // Add marker at search location
+            searchMarker = L.marker([lat, lon]).addTo(map);
+            searchMarker.bindPopup('<b>' + escapeHtml(result.display_name.split(',')[0]) + '</b><br>' + escapeHtml(result.display_name)).openPopup();
+
+            // Zoom to location
+            var zoom = 15; // Default zoom level
+            if (result.boundingbox) {
+                // If bounding box is available, fit to bounds
+                var bbox = result.boundingbox;
+                var bounds = [
+                    [parseFloat(bbox[0]), parseFloat(bbox[2])],
+                    [parseFloat(bbox[1]), parseFloat(bbox[3])]
+                ];
+                map.fitBounds(bounds);
+            } else {
+                // Otherwise, just center and zoom
+                map.setView([lat, lon], zoom);
+            }
+
+            // Clear search input
+            document.getElementById('searchInput').value = '';
+        }
+
+        function handleSearchKeyPress(event) {
+            if (event.key === 'Enter') {
+                searchLocation();
+            }
+        }
+
+        function escapeHtml(text) {
+            var div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // Close search results when clicking outside
+        document.addEventListener('click', function (event) {
+            var searchResults = document.getElementById('searchResults');
+            var searchContainer = document.getElementById('searchContainer');
+
+            if (!searchContainer.contains(event.target) && !searchResults.contains(event.target)) {
+                searchResults.style.display = 'none';
+            }
+        });
 
         // Initialize map when page loads
         window.onload = initMap;
