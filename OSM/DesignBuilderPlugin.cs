@@ -5,7 +5,6 @@ using System.ComponentModel.Composition;
 using System.IO;
 using System.Windows.Forms;
 using System.Diagnostics;
-using System.Threading.Tasks;
 using DB.Extensibility.Contracts;
 using DB.Api;
 
@@ -83,6 +82,17 @@ namespace OSM
             }
         }
 
+        private bool IfAtSiteLevel()
+        {
+            if (ApiEnvironment.CurrentBuildingIndex == -1)
+            {
+                MessageBox.Show("Please navigate to a building level first.", "OSM Import",
+                    MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return true;
+            }
+            return false;
+        }
+
         public override void Create()
         {
             mMenuItems.Add(MenuKeys.Root, new MenuItem());
@@ -94,6 +104,9 @@ namespace OSM
 
         public void LoadOSMFile()
         {
+            if (IfAtSiteLevel())
+                return;
+
             OpenFileDialog openFileDialog = new OpenFileDialog();
             openFileDialog.Filter = "OpenStreetMap files (*.osm)|*.osm|All files (*.*)|*.*";
             openFileDialog.Title = "Load OpenStreetMap file";
@@ -153,6 +166,9 @@ namespace OSM
 
         public void SelectAreaFromMap()
         {
+            if (IfAtSiteLevel())
+                return;
+
             try
             {
                 // Create and show the embedded map browser
