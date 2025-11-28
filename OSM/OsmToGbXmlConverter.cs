@@ -64,7 +64,7 @@ namespace OSM
                 return h;
             if (tags.ContainsKey("building:levels") && int.TryParse(tags["building:levels"], out int l))
                 return l * 3.0;
-            return 5.0;
+            return 0.1;
         }
 
         private Coordinate LatLonToMeters(double lat, double lon, double oLat, double oLon)
