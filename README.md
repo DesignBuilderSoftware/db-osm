@@ -54,10 +54,11 @@ After installation, you'll see a new "OSM" menu in DesignBuilder.
 - Check your internet connection
 - Try importing a file instead (see Option 2 above)
 
-**Buttons are grayed out in the map**
-- You need to draw a rectangle on the map first using the square button
+**Buttons are greyed out in the map**
+- You need to draw a rectangle on the map first, using the square button
 
 ## About OpenStreetMap Data
 
-This plugin uses building data from OpenStreetMap, which is created by volunteers around the world. The data is © OpenStreetMap contributors.
+This plugin uses building data from OpenStreetMap, which is created by volunteers around the world. The data is © OpenStreetMap contributors. 
+OpenStreetMap is open data, licensed under the Open Data Commons Open Database License (ODbL) by the OpenStreetMap Foundation (OSMF).
 
