@@ -7,7 +7,7 @@ Browse a map, click on a location, and automatically download building geometry 
 
 This plugin lets you:
 - **Browse a map** and click to download buildings from that area
-- **Import building files** (.osm format) from OpenStreetMap
+- **Import OpenStreetMap files** (.osm format)
 - **Automatically create 3D blocks** in DesignBuilder with the correct heights and shapes
 
 ## Installation
