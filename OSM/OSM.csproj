@@ -26,10 +26,10 @@
     <!-- NuGet Packages -->
     <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.2420.47" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
-    <!-- Copy resources to output directory -->
   </ItemGroup>
 
   <ItemGroup>
+    <!-- Copy resources to output directory -->
     <None Include="Resources\MapInterface.html">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
