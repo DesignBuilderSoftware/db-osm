@@ -15,7 +15,7 @@ This plugin lets you:
 1. Open a command prompt in the project folder
 2. Run: `dotnet build -c Release`
 3. Run: `.\install-plugin.ps1`
-4. Restart DesignBuilder
+4. Restart the DesignBuilder
 
 After installation, you'll see a new "OSM" menu in DesignBuilder.
 
