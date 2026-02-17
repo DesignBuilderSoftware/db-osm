@@ -409,56 +409,13 @@
                 // Add new selection
                 drawnItems.addLayer(layer);
 
-                // Get bounds (works for both rectangle and polygon)
-                currentBounds = layer.getBounds();
-
-                // Check if this is a polygon (has getLatLngs with nested array)
-                if (layer.getLatLngs && !(layer instanceof L.Rectangle)) {
-                    // Polygon — store vertices
-                    var latlngs = layer.getLatLngs()[0]; // First ring
-                    currentPolygonVertices = latlngs.map(function (ll) {
-                        return { lat: ll.lat, lng: ll.lng };
-                    });
-                    // Calculate polygon area using Shoelace formula in km²
-                    currentArea = calculatePolygonAreaKm2(currentPolygonVertices);
-                } else {
-                    // Rectangle — no polygon filter needed
-                    currentPolygonVertices = null;
-                    var ne = currentBounds.getNorthEast();
-                    var sw = currentBounds.getSouthWest();
-                    var latDiff = ne.lat - sw.lat;
-                    var lonDiff = ne.lng - sw.lng;
-                    var latKm = latDiff * 111.32;
-                    var lonKm = lonDiff * 111.32 * Math.cos((ne.lat + sw.lat) / 2 * Math.PI / 180);
-                    currentArea = Math.abs(latKm * lonKm);
-                }
-
-                // Update UI
+                updateSelectionFromLayer(layer);
                 updateStatus();
             });
 
             map.on(L.Draw.Event.EDITED, function (event) {
-                var layers = event.layers;
-                layers.eachLayer(function (layer) {
-                    currentBounds = layer.getBounds();
-
-                    if (layer.getLatLngs && !(layer instanceof L.Rectangle)) {
-                        var latlngs = layer.getLatLngs()[0];
-                        currentPolygonVertices = latlngs.map(function (ll) {
-                            return { lat: ll.lat, lng: ll.lng };
-                        });
-                        currentArea = calculatePolygonAreaKm2(currentPolygonVertices);
-                    } else {
-                        currentPolygonVertices = null;
-                        var ne = currentBounds.getNorthEast();
-                        var sw = currentBounds.getSouthWest();
-                        var latDiff = ne.lat - sw.lat;
-                        var lonDiff = ne.lng - sw.lng;
-                        var latKm = latDiff * 111.32;
-                        var lonKm = lonDiff * 111.32 * Math.cos((ne.lat + sw.lat) / 2 * Math.PI / 180);
-                        currentArea = Math.abs(latKm * lonKm);
-                    }
-
+                event.layers.eachLayer(function (layer) {
+                    updateSelectionFromLayer(layer);
                     updateStatus();
                 });
             });
@@ -533,24 +490,7 @@
 
                 // Recalculate bounds/area from edited layer
                 drawnItems.eachLayer(function (layer) {
-                    currentBounds = layer.getBounds();
-
-                    if (layer.getLatLngs && !(layer instanceof L.Rectangle)) {
-                        var latlngs = layer.getLatLngs()[0];
-                        currentPolygonVertices = latlngs.map(function (ll) {
-                            return { lat: ll.lat, lng: ll.lng };
-                        });
-                        currentArea = calculatePolygonAreaKm2(currentPolygonVertices);
-                    } else {
-                        currentPolygonVertices = null;
-                        var ne = currentBounds.getNorthEast();
-                        var sw = currentBounds.getSouthWest();
-                        var latDiff = ne.lat - sw.lat;
-                        var lonDiff = ne.lng - sw.lng;
-                        var latKm = latDiff * 111.32;
-                        var lonKm = lonDiff * 111.32 * Math.cos((ne.lat + sw.lat) / 2 * Math.PI / 180);
-                        currentArea = Math.abs(latKm * lonKm);
-                    }
+                    updateSelectionFromLayer(layer);
                 });
                 updateStatus();
             } else {
@@ -583,6 +523,28 @@
                 clearBtn.disabled = false;
                 // Re-evaluate load button state via updateStatus
                 updateStatus();
+            }
+        }
+
+        function calculateBoundsAreaKm2(bounds) {
+            var ne = bounds.getNorthEast();
+            var sw = bounds.getSouthWest();
+            var latKm = (ne.lat - sw.lat) * 111.32;
+            var lonKm = (ne.lng - sw.lng) * 111.32 * Math.cos((ne.lat + sw.lat) / 2 * Math.PI / 180);
+            return Math.abs(latKm * lonKm);
+        }
+
+        function updateSelectionFromLayer(layer) {
+            currentBounds = layer.getBounds();
+            if (layer.getLatLngs && !(layer instanceof L.Rectangle)) {
+                var latlngs = layer.getLatLngs()[0];
+                currentPolygonVertices = latlngs.map(function (ll) {
+                    return { lat: ll.lat, lng: ll.lng };
+                });
+                currentArea = calculatePolygonAreaKm2(currentPolygonVertices);
+            } else {
+                currentPolygonVertices = null;
+                currentArea = calculateBoundsAreaKm2(currentBounds);
             }
         }
 
