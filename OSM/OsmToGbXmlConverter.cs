@@ -10,10 +10,20 @@ namespace OSM
         private string osmFile;
         private List<Building> buildings = new List<Building>();
         private Dictionary<string, Node> nodes = new Dictionary<string, Node>();
+        private List<PolygonFilterVertex> polygonFilter;
 
         public OsmToGbXmlConverter(string osmFile)
         {
             this.osmFile = osmFile;
+        }
+
+        /// <summary>
+        /// Sets a polygon filter. Only buildings whose center falls inside this polygon will be included.
+        /// Each vertex has Lat and Lon properties.
+        /// </summary>
+        public void SetPolygonFilter(List<PolygonFilterVertex> polygon)
+        {
+            this.polygonFilter = polygon;
         }
 
         public int ParseOsm()
@@ -45,6 +55,11 @@ namespace OSM
                     {
                         double centerLat = nodeRefs.Average(n => n.Lat);
                         double centerLon = nodeRefs.Average(n => n.Lon);
+
+                        // If polygon filter is set, only include buildings whose center is inside
+                        if (polygonFilter != null && !IsPointInPolygon(centerLat, centerLon, polygonFilter))
+                            continue;
+
                         buildings.Add(new Building
                         {
                             Id = way.Attribute("id")?.Value,
@@ -56,6 +71,28 @@ namespace OSM
                 }
             }
             return buildings.Count;
+        }
+
+        /// <summary>
+        /// Ray-casting point-in-polygon test.
+        /// Returns true if the point (lat, lon) is inside the polygon.
+        /// </summary>
+        private static bool IsPointInPolygon(double lat, double lon, List<PolygonFilterVertex> polygon)
+        {
+            bool inside = false;
+            int n = polygon.Count;
+            for (int i = 0, j = n - 1; i < n; j = i++)
+            {
+                double yi = polygon[i].Lat, xi = polygon[i].Lon;
+                double yj = polygon[j].Lat, xj = polygon[j].Lon;
+
+                if (((yi > lat) != (yj > lat)) &&
+                    (lon < (xj - xi) * (lat - yi) / (yj - yi) + xi))
+                {
+                    inside = !inside;
+                }
+            }
+            return inside;
         }
 
         private double GetHeight(Dictionary<string, string> tags)
@@ -186,5 +223,11 @@ namespace OSM
     {
         public double X { get; set; }
         public double Y { get; set; }
+    }
+
+    public class PolygonFilterVertex
+    {
+        public double Lat { get; set; }
+        public double Lon { get; set; }
     }
 }

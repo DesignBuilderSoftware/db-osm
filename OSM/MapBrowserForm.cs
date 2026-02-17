@@ -218,6 +218,24 @@ namespace OSM
 
         [JsonProperty("area")]
         public double Area { get; set; }
+
+        /// <summary>
+        /// Polygon vertices for polygon selections. Null for rectangle selections.
+        /// </summary>
+        [JsonProperty("polygon")]
+        public PolygonVertex[] Polygon { get; set; }
+    }
+
+    /// <summary>
+    /// A single vertex in a polygon selection
+    /// </summary>
+    public class PolygonVertex
+    {
+        [JsonProperty("lat")]
+        public double Lat { get; set; }
+
+        [JsonProperty("lng")]
+        public double Lng { get; set; }
     }
 
     /// <summary>

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 using System.ComponentModel.Composition;
 using System.IO;
@@ -253,6 +254,14 @@ namespace OSM
 
                         // Convert using existing converter
                         var converter = new OsmToGbXmlConverter(tempOsmFile);
+
+                        // Apply polygon filter if the user drew a polygon
+                        if (args.BoundingBox.Polygon != null && args.BoundingBox.Polygon.Length >= 3)
+                        {
+                            converter.SetPolygonFilter(
+                                args.BoundingBox.Polygon.Select(v => new PolygonFilterVertex { Lat = v.Lat, Lon = v.Lng }).ToList());
+                        }
+
                         int numBlocks = converter.ParseOsm();
 
                         if (numBlocks == 0)

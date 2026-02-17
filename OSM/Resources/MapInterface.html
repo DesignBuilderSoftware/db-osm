@@ -86,15 +86,11 @@
         }
 
         .btn-draw {
-            background-color: #e67e22;
-            font-size: 15px;
-            font-weight: bold;
-            padding: 10px 24px;
-            letter-spacing: 0.5px;
+            background-color: #3498db;
         }
 
         .btn-draw:hover {
-            background-color: #d35400;
+            background-color: #2980b9;
         }
 
         .btn-draw.drawing {
@@ -312,7 +308,8 @@
         <div class="toolbar-row">
             <h3>Select area from OpenStreetMap</h3>
             <div>
-                <button id="drawBtn" class="btn btn-draw" onclick="startDrawing()">&#9645; Draw Rectangle</button>
+                <button id="drawBtn" class="btn btn-draw btn-draw-rect" onclick="startDrawing('rectangle')">&#9645; Draw Rectangle</button>
+                <button id="drawPolyBtn" class="btn btn-draw btn-draw-poly" onclick="startDrawing('polygon')">&#11040; Draw Polygon</button>
                 <button id="clearBtn" class="btn" onclick="clearSelection()">Clear Selection</button>
                 <button id="loadBtn" class="btn btn-success" onclick="loadToDesignBuilder()" disabled>Load to
                     DesignBuilder</button>
@@ -324,7 +321,7 @@
                     onkeypress="handleSearchKeyPress(event)" />
                 <button id="searchBtn" onclick="searchLocation()">Search</button>
             </div>
-            <span id="info">Draw a rectangle on the map to select an area</span>
+            <span id="info">Draw a rectangle or polygon on the map to select an area</span>
         </div>
     </div>
 
@@ -367,7 +364,9 @@
         var drawControl;
         var drawHandler = null;
         var isDrawing = false;
+        var activeDrawMode = null; // 'rectangle' or 'polygon'
         var currentBounds = null;
+        var currentPolygonVertices = null; // Array of {lat, lng} for polygon selections
         var currentArea = 0;
         var MAX_AREA_KM2 = 5; // Maximum area in square kilometers
         var searchMarker = null; // Marker for search results
@@ -422,20 +421,29 @@
                 // Add new selection
                 drawnItems.addLayer(layer);
 
-                // Get bounds
+                // Get bounds (works for both rectangle and polygon)
                 currentBounds = layer.getBounds();
 
-                // Calculate area in km²
-                var ne = currentBounds.getNorthEast();
-                var sw = currentBounds.getSouthWest();
-
-                var latDiff = ne.lat - sw.lat;
-                var lonDiff = ne.lng - sw.lng;
-
-                // Approximate area calculation (not perfect but good enough)
-                var latKm = latDiff * 111.32; // 1 degree latitude ≈ 111.32 km
-                var lonKm = lonDiff * 111.32 * Math.cos((ne.lat + sw.lat) / 2 * Math.PI / 180);
-                currentArea = Math.abs(latKm * lonKm);
+                // Check if this is a polygon (has getLatLngs with nested array)
+                if (layer.getLatLngs && !(layer instanceof L.Rectangle)) {
+                    // Polygon — store vertices
+                    var latlngs = layer.getLatLngs()[0]; // First ring
+                    currentPolygonVertices = latlngs.map(function (ll) {
+                        return { lat: ll.lat, lng: ll.lng };
+                    });
+                    // Calculate polygon area using Shoelace formula in km²
+                    currentArea = calculatePolygonAreaKm2(currentPolygonVertices);
+                } else {
+                    // Rectangle — no polygon filter needed
+                    currentPolygonVertices = null;
+                    var ne = currentBounds.getNorthEast();
+                    var sw = currentBounds.getSouthWest();
+                    var latDiff = ne.lat - sw.lat;
+                    var lonDiff = ne.lng - sw.lng;
+                    var latKm = latDiff * 111.32;
+                    var lonKm = lonDiff * 111.32 * Math.cos((ne.lat + sw.lat) / 2 * Math.PI / 180);
+                    currentArea = Math.abs(latKm * lonKm);
+                }
 
                 // Update UI
                 updateStatus();
@@ -446,14 +454,22 @@
                 layers.eachLayer(function (layer) {
                     currentBounds = layer.getBounds();
 
-                    // Recalculate area
-                    var ne = currentBounds.getNorthEast();
-                    var sw = currentBounds.getSouthWest();
-                    var latDiff = ne.lat - sw.lat;
-                    var lonDiff = ne.lng - sw.lng;
-                    var latKm = latDiff * 111.32;
-                    var lonKm = lonDiff * 111.32 * Math.cos((ne.lat + sw.lat) / 2 * Math.PI / 180);
-                    currentArea = Math.abs(latKm * lonKm);
+                    if (layer.getLatLngs && !(layer instanceof L.Rectangle)) {
+                        var latlngs = layer.getLatLngs()[0];
+                        currentPolygonVertices = latlngs.map(function (ll) {
+                            return { lat: ll.lat, lng: ll.lng };
+                        });
+                        currentArea = calculatePolygonAreaKm2(currentPolygonVertices);
+                    } else {
+                        currentPolygonVertices = null;
+                        var ne = currentBounds.getNorthEast();
+                        var sw = currentBounds.getSouthWest();
+                        var latDiff = ne.lat - sw.lat;
+                        var lonDiff = ne.lng - sw.lng;
+                        var latKm = latDiff * 111.32;
+                        var lonKm = lonDiff * 111.32 * Math.cos((ne.lat + sw.lat) / 2 * Math.PI / 180);
+                        currentArea = Math.abs(latKm * lonKm);
+                    }
 
                     updateStatus();
                 });
@@ -467,7 +483,7 @@
             updateStatus();
         }
 
-        function startDrawing() {
+        function startDrawing(mode) {
             if (isDrawing) {
                 // Cancel current drawing
                 if (drawHandler) {
@@ -477,29 +493,64 @@
                 return;
             }
 
-            // Create a new rectangle draw handler and enable it
-            drawHandler = new L.Draw.Rectangle(map, {
-                shapeOptions: {
-                    color: '#3498db',
-                    weight: 2,
-                    fillOpacity: 0.2
-                }
-            });
+            activeDrawMode = mode;
+            var shapeOptions = {
+                color: '#3498db',
+                weight: 2,
+                fillOpacity: 0.2
+            };
+
+            if (mode === 'polygon') {
+                drawHandler = new L.Draw.Polygon(map, { shapeOptions: shapeOptions });
+            } else {
+                drawHandler = new L.Draw.Rectangle(map, { shapeOptions: shapeOptions });
+            }
             drawHandler.enable();
             setDrawingState(true);
         }
 
         function setDrawingState(drawing) {
             isDrawing = drawing;
-            var btn = document.getElementById('drawBtn');
+            var rectBtn = document.getElementById('drawBtn');
+            var polyBtn = document.getElementById('drawPolyBtn');
             if (drawing) {
-                btn.classList.add('drawing');
-                btn.innerHTML = '&#10005; Cancel Drawing';
+                // Show cancel state on the active button, disable the other
+                if (activeDrawMode === 'polygon') {
+                    polyBtn.classList.add('drawing');
+                    polyBtn.innerHTML = '&#10005; Cancel Drawing';
+                    rectBtn.disabled = true;
+                } else {
+                    rectBtn.classList.add('drawing');
+                    rectBtn.innerHTML = '&#10005; Cancel Drawing';
+                    polyBtn.disabled = true;
+                }
             } else {
-                btn.classList.remove('drawing');
-                btn.innerHTML = '&#9645; Draw Rectangle';
+                rectBtn.classList.remove('drawing');
+                rectBtn.innerHTML = '&#9645; Draw Rectangle';
+                rectBtn.disabled = false;
+                polyBtn.classList.remove('drawing');
+                polyBtn.innerHTML = '&#11040; Draw Polygon';
+                polyBtn.disabled = false;
                 drawHandler = null;
+                activeDrawMode = null;
             }
+        }
+
+        // Calculate polygon area in km² using Shoelace formula on projected coordinates
+        function calculatePolygonAreaKm2(vertices) {
+            var n = vertices.length;
+            if (n < 3) return 0;
+            var area = 0;
+            for (var i = 0; i < n; i++) {
+                var j = (i + 1) % n;
+                // Convert to approximate km
+                var xi = vertices[i].lng * 111.32 * Math.cos(vertices[i].lat * Math.PI / 180);
+                var yi = vertices[i].lat * 111.32;
+                var xj = vertices[j].lng * 111.32 * Math.cos(vertices[j].lat * Math.PI / 180);
+                var yj = vertices[j].lat * 111.32;
+                area += xi * yj - xj * yi;
+            }
+            return Math.abs(area / 2);
         }
 
         function updateStatus() {
@@ -508,7 +559,7 @@
 
             if (currentBounds === null) {
                 statusDiv.className = 'status-info';
-                statusDiv.innerHTML = 'Ready. Draw a rectangle to select an area.';
+                statusDiv.innerHTML = 'Ready. Draw a rectangle or polygon to select an area.';
                 loadBtn.disabled = true;
                 return;
             }
@@ -520,10 +571,12 @@
                 (currentArea * 1000000).toFixed(0) + ' m²' :
                 currentArea.toFixed(2) + ' km²';
 
+            var shapeType = currentPolygonVertices ? 'Polygon (' + currentPolygonVertices.length + ' vertices)' : 'Rectangle';
+
             if (currentArea > MAX_AREA_KM2) {
                 statusDiv.className = 'status-error';
                 statusDiv.innerHTML = '⚠ Area too large: ' + areaText + ' (max: ' + MAX_AREA_KM2 + ' km²)<br>' +
-                    'Please select a smaller area.<br>' +
+                    shapeType + ' — Please select a smaller area.<br>' +
                     'Bounds: [' + sw.lat.toFixed(5) + ', ' + sw.lng.toFixed(5) + '] to [' + ne.lat.toFixed(5) + ', ' + ne.lng.toFixed(5) + ']';
                 loadBtn.disabled = true;
 
@@ -531,7 +584,7 @@
                 showWarningModal(areaText);
             } else {
                 statusDiv.className = 'status-info';
-                statusDiv.innerHTML = 'Area selected: ' + areaText + '<br>' +
+                statusDiv.innerHTML = shapeType + ' — Area: ' + areaText + '<br>' +
                     'Bounds: [' + sw.lat.toFixed(5) + ', ' + sw.lng.toFixed(5) + '] to [' + ne.lat.toFixed(5) + ', ' + ne.lng.toFixed(5) + ']';
                 loadBtn.disabled = false;
             }
@@ -540,6 +593,7 @@
         function clearSelection() {
             drawnItems.clearLayers();
             currentBounds = null;
+            currentPolygonVertices = null;
             currentArea = 0;
             updateStatus();
         }
@@ -571,18 +625,19 @@
             var ne = currentBounds.getNorthEast();
             var sw = currentBounds.getSouthWest();
 
-            // Create bounding box object
-            var bbox = {
+            // Create selection object with bounding box and optional polygon vertices
+            var selection = {
                 south: sw.lat,
                 west: sw.lng,
                 north: ne.lat,
                 east: ne.lng,
-                area: currentArea
+                area: currentArea,
+                polygon: currentPolygonVertices
             };
 
             // Send to C# via window.chrome.webview
             if (window.chrome && window.chrome.webview) {
-                window.chrome.webview.postMessage(JSON.stringify(bbox));
+                window.chrome.webview.postMessage(JSON.stringify(selection));
             } else {
                 alert('Communication with plugin failed. Please try again.');
             }
