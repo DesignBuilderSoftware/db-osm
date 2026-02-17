@@ -85,6 +85,29 @@
             background-color: #229954;
         }
 
+        .btn-draw {
+            background-color: #e67e22;
+            font-size: 15px;
+            font-weight: bold;
+            padding: 10px 24px;
+            letter-spacing: 0.5px;
+        }
+
+        .btn-draw:hover {
+            background-color: #d35400;
+        }
+
+        .btn-draw.drawing {
+            background-color: #c0392b;
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(192, 57, 43, 0.5); }
+            70% { box-shadow: 0 0 0 8px rgba(192, 57, 43, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(192, 57, 43, 0); }
+        }
+
         #info {
             color: #ecf0f1;
             font-size: 12px;
@@ -289,6 +312,7 @@
         <div class="toolbar-row">
             <h3>Select area from OpenStreetMap</h3>
             <div>
+                <button id="drawBtn" class="btn btn-draw" onclick="startDrawing()">&#9645; Draw Rectangle</button>
                 <button id="clearBtn" class="btn" onclick="clearSelection()">Clear Selection</button>
                 <button id="loadBtn" class="btn btn-success" onclick="loadToDesignBuilder()" disabled>Load to
                     DesignBuilder</button>
@@ -340,6 +364,9 @@
     <script>
         var map;
         var drawnItems;
+        var drawControl;
+        var drawHandler = null;
+        var isDrawing = false;
         var currentBounds = null;
         var currentArea = 0;
         var MAX_AREA_KM2 = 5; // Maximum area in square kilometers
@@ -361,7 +388,7 @@
             map.addLayer(drawnItems);
 
             // Initialize draw control
-            var drawControl = new L.Control.Draw({
+            drawControl = new L.Control.Draw({
                 position: 'topright',
                 draw: {
                     polyline: false,
@@ -387,6 +414,7 @@
             // Handle drawing
             map.on(L.Draw.Event.CREATED, function (event) {
                 var layer = event.layer;
+                setDrawingState(false);
 
                 // Clear previous selection
                 drawnItems.clearLayers();
@@ -431,7 +459,47 @@
                 });
             });
 
+            // Reset draw button when drawing is cancelled (e.g. Escape key)
+            map.on('draw:drawstop', function () {
+                setDrawingState(false);
+            });
+
             updateStatus();
+        }
+
+        function startDrawing() {
+            if (isDrawing) {
+                // Cancel current drawing
+                if (drawHandler) {
+                    drawHandler.disable();
+                }
+                setDrawingState(false);
+                return;
+            }
+
+            // Create a new rectangle draw handler and enable it
+            drawHandler = new L.Draw.Rectangle(map, {
+                shapeOptions: {
+                    color: '#3498db',
+                    weight: 2,
+                    fillOpacity: 0.2
+                }
+            });
+            drawHandler.enable();
+            setDrawingState(true);
+        }
+
+        function setDrawingState(drawing) {
+            isDrawing = drawing;
+            var btn = document.getElementById('drawBtn');
+            if (drawing) {
+                btn.classList.add('drawing');
+                btn.innerHTML = '&#10005; Cancel Drawing';
+            } else {
+                btn.classList.remove('drawing');
+                btn.innerHTML = '&#9645; Draw Rectangle';
+                drawHandler = null;
+            }
         }
 
         function updateStatus() {
