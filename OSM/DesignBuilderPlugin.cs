@@ -122,9 +122,6 @@ namespace OSM
 
             File.WriteAllText(tempGbXmlFile, result.Item1);
 
-            // DEBUG: Save a copy for inspection
-            try { File.Copy(tempGbXmlFile, Path.Combine(System.Environment.GetFolderPath(System.Environment.SpecialFolder.Desktop), "osm_debug.xml"), true); } catch { }
-
             Site site = ApiEnvironment.Site;
             site.SetAttribute("ImportGBXMLBlockMode", "0");
 
@@ -291,7 +288,9 @@ namespace OSM
                                 MessageBoxIcon.Information);
                         }
 
-                        try { File.Delete(tempOsmFile); } catch { }
+                        try { File.Delete(tempOsmFile); }
+                        catch (IOException) { }
+                        catch (UnauthorizedAccessException) { }
                     }
                     catch (Exception ex)
                     {
