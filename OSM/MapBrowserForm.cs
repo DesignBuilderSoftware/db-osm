@@ -15,7 +15,6 @@ namespace OSM
     public class MapBrowserForm : Form
     {
         private WebView2 webView;
-        private static readonly string DefaultUserDataFolder = Path.Combine(Path.GetTempPath(), "OSM_WebView2");
 
         /// <summary>
         /// Event fired when user selects a bounding box from the map
@@ -75,18 +74,9 @@ namespace OSM
         {
             try
             {
-                // Initialize WebView2 environment, retrying with a fresh folder if the
-                // default one is still locked from a previous session in this process.
-                CoreWebView2Environment environment;
-                try
-                {
-                    environment = await CoreWebView2Environment.CreateAsync(null, DefaultUserDataFolder, null);
-                }
-                catch (InvalidOperationException)
-                {
-                    var fallbackFolder = DefaultUserDataFolder + "_" + Guid.NewGuid().ToString("N").Substring(0, 8);
-                    environment = await CoreWebView2Environment.CreateAsync(null, fallbackFolder, null);
-                }
+                // Initialize WebView2 environment
+                var userDataFolder = Path.Combine(Path.GetTempPath(), "OSM_WebView2");
+                var environment = await CoreWebView2Environment.CreateAsync(null, userDataFolder, null);
                 await webView.EnsureCoreWebView2Async(environment);
 
                 // Enable web security features that allow API calls
