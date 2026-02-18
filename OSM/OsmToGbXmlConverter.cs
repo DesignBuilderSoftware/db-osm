@@ -34,7 +34,6 @@ namespace OSM
             foreach (var node in doc.Descendants("node"))
             {
                 var id = node.Attribute("id")?.Value;
-                var lon = double.Parse(node.Attribute("lon")?.Value ?? "0");
                 var lat = double.Parse(node.Attribute("lat")?.Value ?? "0", CultureInfo.InvariantCulture);
                 var lon = double.Parse(node.Attribute("lon")?.Value ?? "0", CultureInfo.InvariantCulture);
                 nodes[id] = new Node { Lat = lat, Lon = lon };
