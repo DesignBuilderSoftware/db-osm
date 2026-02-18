@@ -103,6 +103,38 @@ namespace OSM
             mMenuItems.Add(MenuKeys.Help, new MenuItem(ShowHelp, true));
         }
 
+        /// <summary>
+        /// Converts an OSM file to gbXML and imports it into DesignBuilder.
+        /// Returns the number of blocks imported, or 0 if none found.
+        /// </summary>
+        private int ImportOsmToDesignBuilder(string osmFile, List<PolygonFilterVertex> polygonFilter = null)
+        {
+            var converter = new OsmToGbXmlConverter(osmFile);
+
+            if (polygonFilter != null)
+                converter.SetPolygonFilter(polygonFilter);
+
+            int numBlocks = converter.ParseOsm();
+            if (numBlocks == 0) return 0;
+
+            var result = converter.CreateGbXml();
+            string tempGbXmlFile = Path.Combine(Path.GetTempPath(), "osm_converted.xml");
+
+            File.WriteAllText(tempGbXmlFile, result.Item1);
+
+            // DEBUG: Save a copy for inspection
+            try { File.Copy(tempGbXmlFile, Path.Combine(System.Environment.GetFolderPath(System.Environment.SpecialFolder.Desktop), "osm_debug.xml"), true); } catch { }
+
+            Site site = ApiEnvironment.Site;
+            site.SetAttribute("ImportGBXMLBlockMode", "0");
+
+            GbXmlFile gbXmlFile = ApiEnvironment.GbXmlFileOperations.Current;
+            gbXmlFile.LoadFile(tempGbXmlFile);
+            gbXmlFile.ImportModel();
+
+            return numBlocks;
+        }
+
         public void LoadOSMFile()
         {
             if (IfAtSiteLevel())
@@ -119,11 +151,7 @@ namespace OSM
             {
                 try
                 {
-                    string osmFile = openFileDialog.FileName;
-                    string tempGbXmlFile = Path.Combine(Path.GetTempPath(), "osm_converted.xml");
-
-                    var converter = new OsmToGbXmlConverter(osmFile);
-                    int numBlocks = converter.ParseOsm();
+                    int numBlocks = ImportOsmToDesignBuilder(openFileDialog.FileName);
 
                     if (numBlocks == 0)
                     {
@@ -132,30 +160,11 @@ namespace OSM
                         return;
                     }
 
-                    var result = converter.CreateGbXml();
-                    string gbXMLContent = result.Item1;
-                    //int blockCount = result.Item2;
-
-                    File.WriteAllText(tempGbXmlFile, gbXMLContent);
-
-                    Site site = ApiEnvironment.Site;
-                    site.SetAttribute("ImportGBXMLBlockMode", "0");
-
-                    GbXmlFile gbXmlFile = ApiEnvironment.GbXmlFileOperations.Current;
-                    gbXmlFile.LoadFile(tempGbXmlFile);
-                    gbXmlFile.ImportModel();
-
                     MessageBox.Show(
                         $"Successfully imported {numBlocks} blocks from OpenStreetMap.",
                         "OSM Import Complete",
                         MessageBoxButtons.OK,
                         MessageBoxIcon.Information);
-
-                    try
-                    {
-                        File.Delete(tempGbXmlFile);
-                    }
-                    catch { }
                 }
                 catch (Exception ex)
                 {
@@ -178,6 +187,7 @@ namespace OSM
                 // Handle bounding box selection
                 mapForm.BoundingBoxSelected += async (sender, args) =>
                 {
+                    Form progressForm = null;
                     try
                     {
                         // Close the map form
@@ -213,7 +223,7 @@ namespace OSM
                         }
 
                         // Show progress dialog
-                        var progressForm = new Form
+                        progressForm = new Form
                         {
                             Text = "Downloading OSM Data",
                             Width = 400,
@@ -252,65 +262,42 @@ namespace OSM
                         string tempOsmFile = Path.Combine(Path.GetTempPath(), "osm_downloaded.osm");
                         File.WriteAllText(tempOsmFile, osmXml);
 
-                        // Convert using existing converter
-                        var converter = new OsmToGbXmlConverter(tempOsmFile);
-
-                        // Apply polygon filter if the user drew a polygon
+                        // Build polygon filter if the user drew a polygon
+                        List<PolygonFilterVertex> polygonFilter = null;
                         if (args.BoundingBox.Polygon != null && args.BoundingBox.Polygon.Length >= 3)
                         {
-                            converter.SetPolygonFilter(
-                                args.BoundingBox.Polygon.Select(v => new PolygonFilterVertex { Lat = v.Lat, Lon = v.Lng }).ToList());
+                            polygonFilter = args.BoundingBox.Polygon
+                                .Select(v => new PolygonFilterVertex { Lat = v.Lat, Lon = v.Lng }).ToList();
                         }
 
-                        int numBlocks = converter.ParseOsm();
+                        progressLabel.Text = "Converting and importing...";
+                        Application.DoEvents();
+
+                        int numBlocks = ImportOsmToDesignBuilder(tempOsmFile, polygonFilter);
+
+                        progressForm.Close();
 
                         if (numBlocks == 0)
                         {
-                            progressForm.Close();
                             MessageBox.Show("No geometry found in the selected area.", "OSM Import",
                                 MessageBoxButtons.OK, MessageBoxIcon.Warning);
-
-                            try { File.Delete(tempOsmFile); } catch { }
-                            return;
                         }
-
-                        var conversionResult = converter.CreateGbXml();
-                        string gbXMLContent = conversionResult.Item1;
-                        //int blockCount = conversionResult.Item2;
-
-                        progressLabel.Text = "Importing into DesignBuilder...";
-                        Application.DoEvents();
-
-                        // Import into DesignBuilder
-                        string tempGbXmlFile = Path.Combine(Path.GetTempPath(), "osm_converted.xml");
-                        File.WriteAllText(tempGbXmlFile, gbXMLContent);
-
-                        Site site = ApiEnvironment.Site;
-                        site.SetAttribute("ImportGBXMLBlockMode", "0");
-
-                        GbXmlFile gbXmlFile = ApiEnvironment.GbXmlFileOperations.Current;
-                        gbXmlFile.LoadFile(tempGbXmlFile);
-                        gbXmlFile.ImportModel();
-
-                        // Close progress and show success
-                        progressForm.Close();
-
-                        MessageBox.Show(
-                            $"Successfully imported {numBlocks} blocks from OpenStreetMap.",
-                            "OSM Import Complete",
-                            MessageBoxButtons.OK,
-                            MessageBoxIcon.Information);
-
-                        // Cleanup
-                        try
+                        else
                         {
-                            File.Delete(tempOsmFile);
-                            File.Delete(tempGbXmlFile);
+                            MessageBox.Show(
+                                $"Successfully imported {numBlocks} blocks from OpenStreetMap.",
+                                "OSM Import Complete",
+                                MessageBoxButtons.OK,
+                                MessageBoxIcon.Information);
                         }
-                        catch { }
+
+                        try { File.Delete(tempOsmFile); } catch { }
                     }
                     catch (Exception ex)
                     {
+                        if (progressForm != null && progressForm.Visible)
+                            progressForm.Close();
+
                         MessageBox.Show($"Error importing OSM data: {ex.Message}", "OSM Import Error",
                             MessageBoxButtons.OK, MessageBoxIcon.Error);
                     }

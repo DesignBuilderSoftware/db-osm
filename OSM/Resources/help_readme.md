@@ -3,8 +3,8 @@ How to Use
 Option 1: Browse map
 
 1. Click OSM → Browse OpenStreetMap to open a map
-2. Navigate to your location
-3. Click the square button and draw a rectangle around the area you want to import
+2. Search for a location or navigate the map
+3. Draw a rectangle or polygon around the area to import
 4. Click Load to DesignBuilder
 
 Option 2: Import file

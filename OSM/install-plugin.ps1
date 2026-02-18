@@ -39,27 +39,22 @@ if (-not (Test-Path $resourcesFolder)) {
     New-Item -ItemType Directory -Force -Path $resourcesFolder | Out-Null
 }
 
-# Copy HTML interface
+# Copy HTML interface and associated CSS/JS
 if (Test-Path "$sourceBinFolder\Resources\MapInterface.html") {
     Copy-Item "$sourceBinFolder\Resources\MapInterface.html" -Destination $resourcesFolder -Force
 }
-
-# Copy help file
+if (Test-Path "$sourceBinFolder\Resources\MapInterface.css") {
+    Copy-Item "$sourceBinFolder\Resources\MapInterface.css" -Destination $resourcesFolder -Force
+}
+if (Test-Path "$sourceBinFolder\Resources\MapInterface.js") {
+    Copy-Item "$sourceBinFolder\Resources\MapInterface.js" -Destination $resourcesFolder -Force
+}
 if (Test-Path "$sourceBinFolder\Resources\help_readme.md") {
     Copy-Item "$sourceBinFolder\Resources\help_readme.md" -Destination $resourcesFolder -Force
 }
-
-# Copy favicon
-if (Test-Path "$sourceBinFolder\Resources\favicon.svg") {
-    Copy-Item "$sourceBinFolder\Resources\favicon.svg" -Destination $resourcesFolder -Force
-}
-
-# Copy icon
 if (Test-Path "$sourceBinFolder\Resources\Openstreetmap_logo.png") {
     Copy-Item "$sourceBinFolder\Resources\Openstreetmap_logo.png" -Destination $resourcesFolder -Force
 }
-
-# Copy WebView2Loader.dll (x86 version)
 if (Test-Path "$sourceBinFolder\runtimes\win-x86\native\WebView2Loader.dll") {
     Copy-Item "$sourceBinFolder\runtimes\win-x86\native\WebView2Loader.dll" -Destination $pluginsFolder -Force
 }
@@ -72,6 +67,8 @@ if ($?) {
     Write-Host "  - Newtonsoft.Json" -ForegroundColor Gray
     Write-Host "  - WebView2Loader.dll" -ForegroundColor Gray
     Write-Host "  - Resources\MapInterface.html" -ForegroundColor Gray
+    Write-Host "  - Resources\MapInterface.css" -ForegroundColor Gray
+    Write-Host "  - Resources\MapInterface.js" -ForegroundColor Gray
     Write-Host "  - Resources\help_readme.md" -ForegroundColor Gray
     Write-Host "  - Resources\Openstreetmap_logo.png" -ForegroundColor Gray
     

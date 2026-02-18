@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Xml.Linq;
 
@@ -33,8 +34,9 @@ namespace OSM
             foreach (var node in doc.Descendants("node"))
             {
                 var id = node.Attribute("id")?.Value;
-                var lat = double.Parse(node.Attribute("lat")?.Value ?? "0");
                 var lon = double.Parse(node.Attribute("lon")?.Value ?? "0");
+                var lat = double.Parse(node.Attribute("lat")?.Value ?? "0", CultureInfo.InvariantCulture);
+                var lon = double.Parse(node.Attribute("lon")?.Value ?? "0", CultureInfo.InvariantCulture);
                 nodes[id] = new Node { Lat = lat, Lon = lon };
             }
 
@@ -97,7 +99,7 @@ namespace OSM
 
         private double GetHeight(Dictionary<string, string> tags)
         {
-            if (tags.ContainsKey("height") && double.TryParse(tags["height"].Replace("m", "").Trim(), out double h))
+            if (tags.ContainsKey("height") && double.TryParse(tags["height"].Replace("m", "").Trim(), NumberStyles.Float, CultureInfo.InvariantCulture, out double h))
                 return h;
             if (tags.ContainsKey("building:levels") && int.TryParse(tags["building:levels"], out int l))
                 return l * 3.0;
@@ -121,18 +123,28 @@ namespace OSM
 
             XNamespace ns = "http://www.gbxml.org/schema";
             var gbxml = new XElement(ns + "gbXML",
-                new XAttribute("version", "6.01"),
-                new XAttribute("lengthUnit", "Meters"));
+                new XAttribute("useSIUnitsForResults", "true"),
+                new XAttribute("temperatureUnit", "C"),
+                new XAttribute("lengthUnit", "Meters"),
+                new XAttribute("areaUnit", "SquareMeters"),
+                new XAttribute("volumeUnit", "CubicMeters"),
+                new XAttribute("version", "0.37"));
 
-            var campus = new XElement("Campus", new XAttribute("id", "campus"),
-                new XElement("Location",
-                    new XElement("Longitude", oLon.ToString("F6")),
-                    new XElement("Latitude", oLat.ToString("F6"))));
+            var campus = new XElement(ns + "Campus", new XAttribute("id", "campus"),
+                new XElement(ns + "Location",
+                    new XElement(ns + "Longitude", oLon.ToString("F6", CultureInfo.InvariantCulture)),
+                    new XElement(ns + "Latitude", oLat.ToString("F6", CultureInfo.InvariantCulture))));
 
-            var building = new XElement("Building",
+            var building = new XElement(ns + "Building",
                 new XAttribute("id", "building"),
                 new XAttribute("buildingType", "Mixed"),
-                new XElement("Name", "Combined Building"));
+                new XElement(ns + "Name", "Combined Building"));
+
+            // BuildingStorey must be defined before Space elements that reference it
+            building.Add(new XElement(ns + "BuildingStorey",
+                new XAttribute("id", "storey-1"),
+                new XElement(ns + "Name", "Ground Floor"),
+                new XElement(ns + "Level", "  0.000000")));
 
             int blockCount = 0;
             for (int i = 0; i < buildings.Count; i++)
@@ -146,21 +158,22 @@ namespace OSM
                     : coords;
 
                 string blockName = b.Tags.ContainsKey("name") ? b.Tags["name"] : $"Space {i + 1}";
-                var block = new XElement("Space",
+                var block = new XElement(ns + "Space",
                     new XAttribute("id", $"space-{b.Id}"),
+                    new XAttribute("conditionType", "HeatedAndCooled"),
                     new XAttribute("buildingStoreyIdRef", "storey-1"),
-                    new XElement("Name", blockName));
+                    new XElement(ns + "Name", blockName));
 
-                var shell = new XElement("ClosedShell");
+                var shell = new XElement(ns + "ClosedShell");
 
-                var floor = new XElement("PolyLoop");
-                foreach (var coord in norm) floor.Add(CP(coord.X, coord.Y, 0));
+                var floor = new XElement(ns + "PolyLoop");
+                foreach (var coord in norm) floor.Add(CP(ns, coord.X, coord.Y, 0));
                 shell.Add(floor);
 
-                var ceiling = new XElement("PolyLoop");
+                var ceiling = new XElement(ns + "PolyLoop");
                 for (int j = norm.Count - 1; j >= 0; j--)
                 {
-                    ceiling.Add(CP(norm[j].X, norm[j].Y, h));
+                    ceiling.Add(CP(ns, norm[j].X, norm[j].Y, h));
                 }
                 shell.Add(ceiling);
 
@@ -168,34 +181,36 @@ namespace OSM
                 {
                     var coord1 = norm[j];
                     var coord2 = norm[(j + 1) % norm.Count];
-                    shell.Add(new XElement("PolyLoop",
-                        CP(coord1.X, coord1.Y, 0),
-                        CP(coord2.X, coord2.Y, 0),
-                        CP(coord2.X, coord2.Y, h),
-                        CP(coord1.X, coord1.Y, h)));
+                    shell.Add(new XElement(ns + "PolyLoop",
+                        CP(ns, coord1.X, coord1.Y, 0),
+                        CP(ns, coord2.X, coord2.Y, 0),
+                        CP(ns, coord2.X, coord2.Y, h),
+                        CP(ns, coord1.X, coord1.Y, h)));
                 }
 
-                block.Add(new XElement("ShellGeometry", new XAttribute("id", $"shell-{b.Id}"), shell));
+                block.Add(new XElement(ns + "ShellGeometry",
+                    new XAttribute("id", $"shell-{b.Id}"),
+                    new XAttribute("unit", "Meters"),
+                    shell));
                 building.Add(block);
                 blockCount++;
             }
 
-            building.Add(new XElement("BuildingStorey",
-                new XAttribute("id", "storey-1"),
-                new XElement("Name", "Ground Floor"),
-                new XElement("Level", "0.0")));
-
             campus.Add(building);
             gbxml.Add(campus);
-            return Tuple.Create(gbxml.ToString(), blockCount);
+
+            var doc = new XDocument(
+                new XDeclaration("1.0", "UTF-8", null),
+                gbxml);
+            return Tuple.Create(doc.Declaration.ToString() + Environment.NewLine + doc.Root.ToString(), blockCount);
         }
 
-        private XElement CP(double x, double y, double z)
+        private XElement CP(XNamespace ns, double x, double y, double z)
         {
-            return new XElement("CartesianPoint",
-                new XElement("Coordinate", Math.Round(x, 3).ToString("F3")),
-                new XElement("Coordinate", Math.Round(y, 3).ToString("F3")),
-                new XElement("Coordinate", Math.Round(z, 3).ToString("F3")));
+            return new XElement(ns + "CartesianPoint",
+                new XElement(ns + "Coordinate", x.ToString("F6", CultureInfo.InvariantCulture)),
+                new XElement(ns + "Coordinate", y.ToString("F6", CultureInfo.InvariantCulture)),
+                new XElement(ns + "Coordinate", z.ToString("F6", CultureInfo.InvariantCulture)));
         }
     }
 

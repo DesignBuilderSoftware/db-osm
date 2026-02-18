@@ -75,7 +75,8 @@ namespace OSM
             try
             {
                 // Initialize WebView2 environment
-                var environment = await CoreWebView2Environment.CreateAsync(null, Path.GetTempPath(), null);
+                var userDataFolder = Path.Combine(Path.GetTempPath(), "OSM_WebView2");
+                var environment = await CoreWebView2Environment.CreateAsync(null, userDataFolder, null);
                 await webView.EnsureCoreWebView2Async(environment);
 
                 // Enable web security features that allow API calls
@@ -130,9 +131,18 @@ namespace OSM
                 var tempPath = Path.Combine(Path.GetTempPath(), "OSM_MapInterface");
                 Directory.CreateDirectory(tempPath);
 
-                // Copy HTML
+                // Copy HTML, CSS, and JS
                 var htmlDest = Path.Combine(tempPath, "map.html");
                 File.Copy(htmlSource, htmlDest, true);
+
+                var resourcesDir = Path.Combine(pluginDir, "Resources");
+                var cssSource = Path.Combine(resourcesDir, "MapInterface.css");
+                if (File.Exists(cssSource))
+                    File.Copy(cssSource, Path.Combine(tempPath, "MapInterface.css"), true);
+
+                var jsSource = Path.Combine(resourcesDir, "MapInterface.js");
+                if (File.Exists(jsSource))
+                    File.Copy(jsSource, Path.Combine(tempPath, "MapInterface.js"), true);
 
                 // Set up a virtual host mapping to avoid CORS issues
                 // This gives the page a proper origin (https://osm.local) instead of "null"

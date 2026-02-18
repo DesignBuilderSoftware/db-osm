@@ -33,6 +33,12 @@
     <None Include="Resources\MapInterface.html">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
+    <None Include="Resources\MapInterface.css">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="Resources\MapInterface.js">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
     <None Include="Resources\Openstreetmap_logo.png">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
