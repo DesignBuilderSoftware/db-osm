@@ -1,14 +1,15 @@
 # OpenStreetMap Plugin for DesignBuilder
 
-Import real-world buildings from OpenStreetMap directly into DesignBuilder. 
+Import real-world buildings from OpenStreetMap directly into DesignBuilder.
 Browse a map, click on a location, and automatically download building geometry into your model.
 
 ## What Does This Plugin Do?
 
 This plugin lets you:
+
 - **Browse a map** and click to download buildings from that area
 - **Import OpenStreetMap files** (.osm format)
-- **Automatically create 3D blocks** in DesignBuilder with the correct heights and shapes
+- **Automatically create 3D outline blocks** in DesignBuilder with the correct heights and shapes
 
 ## Installation
 
@@ -43,22 +44,25 @@ After installation, you'll see a new "OSM" menu in DesignBuilder.
 ## Common Problems
 
 **The OSM menu doesn't appear in DesignBuilder**
+
 - Make sure you restarted DesignBuilder after installation
 - Check that the plugin file was copied correctly
 
 **"No buildings found" message**
+
 - The area you selected might not have building data in OpenStreetMap
 - Try a different location with buildings visible on the map
 
 **The map doesn't load**
+
 - Check your internet connection
 - Try importing a file instead (see Option 2 above)
 
 **Buttons are greyed out in the map**
+
 - You need to draw a rectangle on the map first, using the square button
 
 ## About OpenStreetMap Data
 
-This plugin uses building data from OpenStreetMap, which is created by volunteers around the world. The data is © OpenStreetMap contributors. 
+This plugin uses building data from OpenStreetMap, which is created by volunteers around the world. The data is © OpenStreetMap contributors.
 OpenStreetMap is open data, licensed under the Open Data Commons Open Database License (ODbL) by the OpenStreetMap Foundation (OSMF).
-
