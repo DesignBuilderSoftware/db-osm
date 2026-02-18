@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
+using System.Text.RegularExpressions;
 using System.Xml.Linq;
 
 namespace OSM
@@ -96,11 +97,17 @@ namespace OSM
             return inside;
         }
 
+        private static readonly Regex LeadingNumberRegex = new Regex(@"^[\s]*([0-9]*\.?[0-9]+)", RegexOptions.Compiled);
+
         private double GetHeight(Dictionary<string, string> tags)
         {
-            if (tags.ContainsKey("height") && double.TryParse(tags["height"].Replace("m", "").Trim(), NumberStyles.Float, CultureInfo.InvariantCulture, out double h))
-                return h;
-            if (tags.ContainsKey("building:levels") && int.TryParse(tags["building:levels"], out int l))
+            if (tags.ContainsKey("height"))
+            {
+                var match = LeadingNumberRegex.Match(tags["height"]);
+                if (match.Success && double.TryParse(match.Groups[1].Value, NumberStyles.Float, CultureInfo.InvariantCulture, out double h) && h > 0)
+                    return h;
+            }
+            if (tags.ContainsKey("building:levels") && int.TryParse(tags["building:levels"], out int l) && l > 0)
                 return l * 3.0;
             return 0.1;
         }
