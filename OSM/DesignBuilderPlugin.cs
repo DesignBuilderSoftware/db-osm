@@ -227,7 +227,8 @@ namespace OSM
                             Height = 150,
                             FormBorderStyle = FormBorderStyle.FixedDialog,
                             StartPosition = FormStartPosition.CenterScreen,
-                            ControlBox = false
+                            ControlBox = false,
+                            TopMost = true
                         };
 
                         var progressLabel = new Label
