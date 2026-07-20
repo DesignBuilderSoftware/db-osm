@@ -1,0 +1,15 @@
+<Project>
+  <!--
+    The OSM project references DB.Api.dll and DB.Extensibility.Contracts.dll via HintPaths
+    pointing at the DesignBuilder install directory (C:\Program Files (x86)\DesignBuilder\Lib).
+    On machines without DesignBuilder installed (e.g. CI, test-only checkouts), fall back to
+    the copies of those DLLs checked into the OSM\ directory of this repo.
+
+    ReferencePath is a standard MSBuild assembly search location consulted by
+    ResolveAssemblyReference. This is only applied when the DesignBuilder install
+    directory is absent, so builds on developer machines with DesignBuilder are unaffected.
+  -->
+  <PropertyGroup Condition="!Exists('C:\Program Files (x86)\DesignBuilder\Lib')">
+    <ReferencePath>$(MSBuildThisFileDirectory)OSM</ReferencePath>
+  </PropertyGroup>
+</Project>
